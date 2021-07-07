@@ -27,6 +27,9 @@ class ULTRAMESH_API UltraMesh
 {
 public:
 	UltraMesh();
+    UltraMesh(const UltraMesh& other);
+    UltraMesh& operator=(const UltraMesh& other);
+
 	void MapEdges();
 	void CalcFaces();
 	void CalcNormals(bool byArea);
@@ -35,6 +38,8 @@ public:
 	std::vector<UltraFace> IntersectWithRay(Eigen::Vector3d& origin, Eigen::Vector3d& direction);
     void Smooth();
     void OffsetBySkeleton(double maxOffset);
+    void SaveAsVRML(const std::wstring fileName, const double redYellow, const double yellowGreen);
+    void CalcThickness(const UltraMesh& otherMesh);
 
 
 	std::vector<UltraVertex> m_vertices;

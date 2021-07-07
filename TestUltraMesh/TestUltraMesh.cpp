@@ -215,8 +215,11 @@ int main(int argc, char* argv[])
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 	printf("Completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
+    UltraMesh modelMesh = ultraMesh;
     ultraMesh.OffsetBySkeleton(-10);
     ultraMesh.Smooth();
+    modelMesh.CalcThickness(ultraMesh);
+    modelMesh.SaveAsVRML(L"c:/temp/!thickness.wrl", 3, 5);
 
 	modifiedModel = UltraMesh2PTSolid(ultraMesh, env);
 

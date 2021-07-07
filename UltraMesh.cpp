@@ -1,4 +1,6 @@
 #include "UltraMesh.h"
+#include <iostream>
+#include <fstream>
 
 
 
@@ -24,6 +26,32 @@ UltraMesh::UltraMesh()
 	m_vertices.clear();
 	m_faces.clear();
 	m_edges.clear();
+}
+
+
+UltraMesh::UltraMesh(const UltraMesh& other)
+{
+    if (this != &other)
+    {
+        this->m_vertices = other.m_vertices;
+        this->m_edges = other.m_edges;
+        this->m_faces = other.m_faces;
+        this->m_buckets = other.m_buckets;
+        this->CalcBounds();
+    }
+ }
+
+UltraMesh& UltraMesh::operator=(const UltraMesh& other)
+{
+    if (this != &other)
+    {
+        this->m_vertices = other.m_vertices;
+        this->m_edges = other.m_edges;
+        this->m_faces = other.m_faces;
+        this->m_buckets = other.m_buckets;
+        this->CalcBounds();
+    }
+    return *this;
 }
 
 
@@ -243,6 +271,7 @@ void UltraMesh::Smooth()
     // move distpos to pos
     for (size_t i = 0; i < m_vertices.size(); i++)
     {
+        m_vertices[i].m_thickness = (m_vertices[i].m_position - m_vertices[i].m_shadowPosition).norm();
         m_vertices[i].m_position = m_vertices[i].m_shadowPosition;
     }
     // calc new edges vector lengths
@@ -554,6 +583,55 @@ bool Bucket::IntersectWithRay(Eigen::Vector3d& origin, Eigen::Vector3d& directio
 		tmax = tzmax;
 		return true;
 }
+
+void UltraMesh::SaveAsVRML(const std::wstring fileName, const double redYellow, const double yellowGreen)
+{
+    std::ofstream myfile;
+    myfile.open(fileName);
+    myfile << "#VRML V2.0 utf8\n#'Mesh by Shai Waisel'\nShape\n{\n";
+    myfile << "\tgeometry IndexedFaceSet\n\t{\n";
+    myfile << "\t\tcoord Coordinate\n\t\t{\n";
+    myfile << "\t\t\tpoint\n\t\t\t[\n";
+    for (auto& vertex : m_vertices)
+    {
+        myfile << "\t\t\t" << vertex.m_position[0] << "\t" << vertex.m_position[1] << "\t" << vertex.m_position[2] << "\n";
+    }
+    myfile << "\t\t\t]\n\t\t}\n";
+    myfile << "\t\tcolorPerVertex TRUE\n";
+    myfile << "\t\tcolor Color\n\t\t{\n";
+    myfile << "\t\t\tcolor\n\t\t\t[\n";
+    for (auto& vertex : m_vertices)
+    {
+        if (vertex.m_thickness < redYellow)
+            myfile << "\t\t\t" << "1.0\t0.0\t0.0\n";
+        else  if (vertex.m_thickness < yellowGreen)
+            myfile << "\t\t\t" << "1.0\t1.0\t0.0\n";
+        else
+            myfile << "\t\t\t" << "0.0\t1.0\t0.0\n";
+
+    }
+    myfile << "\t\t\t]\n\t\t}\n";
+    myfile << "\t\tcoordIndex\n\t\t[\n";
+    for (auto& face : m_faces)
+    {
+        myfile << "\t\t" << face.m_vertices[0] << "\t" << face.m_vertices[1] << "\t" << face.m_vertices[2] << "-1\n";
+    }
+    myfile << "\t\t]\n\t}\n";
+
+    myfile << "}\n";
+    myfile.close();
+
+}
+
+
+void UltraMesh::CalcThickness(const UltraMesh& otherMesh)
+{
+    for (int idx = 0; idx < m_vertices.size(); idx++)
+    {
+        m_vertices[idx].m_thickness = (m_vertices[idx].m_position - otherMesh.m_vertices[idx].m_position).norm();
+    }
+}
+
 
 
 
