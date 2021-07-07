@@ -1,0 +1,9 @@
+%ModelFile=C:\Projects\MeshSimplify\models\Bunny.stl
+ModelFile=c:\parts\BrainGear.stl
+%ModelFile=C:\Projects\MeshSimplify\models\Bunny-LowPoly.stl
+%ModelFile=O:\R&D DATA\ShaiWaisel\Beachball of Complexity.stl
+%ModelFile=O:\R&D DATA\ShaiWaisel\Cube Vertex Paint Tri.stl
+SimplifiedFile=c:\temp\simplified.stl
+SimplificationFactor=0.10
+
+
