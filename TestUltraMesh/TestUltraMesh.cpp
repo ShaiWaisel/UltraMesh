@@ -12,6 +12,8 @@
 
 #define PROMPT(_str) PgWindowText(_str);
 #define JOURNAL_DEBUG 0
+#define MINIMAL_WALL_THICKNESS 28
+#define REMESH false
 #define TIME_INTERVAL(end, start) double(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()) / 1000.0
 
 
@@ -116,8 +118,13 @@ void PTSolid2UltraMesh(PTSolid solid, UltraMesh& mesh)
 int main(int argc, char* argv[])
 
 {
-	std::wstring fileName = L"c:\\parts\\castor\\Spiral_20480.stl";
+	//std::wstring fileName = L"c:\\parts\\castor\\Spiral_20480.stl";
     //std::wstring fileName = L"c:\\parts\\industrial\\bracket.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\Remeshed\\73986 LEVER_curve_sensitive.stl";
+    //std::wstring fileName = L"C:\\Parts\\Industrial\\Rocker Cover.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl";
+    std::wstring fileName = L"C:\\Parts\\Castor\\3dcross.stl";
+    //std::wstring fileName = L"c:/temp/!hole.stl";
 
 	PTInitialiseOpts initialise_options;
 	PTEnvironment env = PV_ENTITY_NULL;
@@ -193,6 +200,18 @@ int main(int argc, char* argv[])
 
 	UltraMesh ultraMesh = UltraMesh();
 	model = ReadSTL(env, fileName);
+    if (REMESH)
+    {
+        PTSolidRemeshOpts initSolidRemeshOpts;
+        PMInitSolidRemeshOpts(&initSolidRemeshOpts);
+        initSolidRemeshOpts.keep_sharp_features = TRUE;
+        initSolidRemeshOpts.remesh_limits = PV_REMESH_LIMIT_EDGE_LENGTH;
+        initSolidRemeshOpts.keep_boundaries = TRUE;
+        initSolidRemeshOpts.curvature_sensitive_remeshing = TRUE;
+        initSolidRemeshOpts.max_edge_length = MINIMAL_WALL_THICKNESS / 3;
+        initSolidRemeshOpts.edge_length = MINIMAL_WALL_THICKNESS / 3;
+        status += PFSolidRemesh(model, &initSolidRemeshOpts);
+    }
 	printf("Building mesh..\n");
 	PTSolid2UltraMesh(model, ultraMesh);
 	ultraMesh.CalcFaces();
@@ -213,13 +232,17 @@ int main(int argc, char* argv[])
 			 (rand() / RAND_MAX - 0.5) * 2 };
 		ultraMesh.IntersectWithRay(origin, direction);
 	}
-	auto end = std::chrono::high_resolution_clock::now();
-	printf("Completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
     UltraMesh modelMesh = ultraMesh;
-    ultraMesh.OffsetBySkeleton(-10);
-    ultraMesh.Smooth();
+    
+    double halfThickness = MINIMAL_WALL_THICKNESS / 2.0;
+
+    ultraMesh.OffsetBySkeleton(-halfThickness);
+    //ultraMesh.Smooth();
     modelMesh.CalcThickness(ultraMesh);
-    modelMesh.SaveAsVRML(L"c:/temp/!thickness.wrl", 3, 5);
+    auto end = std::chrono::high_resolution_clock::now();
+    printf("Completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
+    modelMesh.SaveAsVRML(L"c:/temp/!thickness.wrl", MINIMAL_WALL_THICKNESS / 2 , MINIMAL_WALL_THICKNESS *1.1 / 2);
+    ultraMesh.SaveAsVRML(L"c:/temp/!skeleton.wrl", 0, 0);
 
 	modifiedModel = UltraMesh2PTSolid(ultraMesh, env);
 
@@ -275,7 +298,7 @@ int main(int argc, char* argv[])
 	/* Adjust viewport to fit solid and render */
 	status += PFDrawableRender(drawable, vp, PV_RENDER_MODE_SOLID);
 
-	PROMPT((char*)"Press any key to switch.\n");
+	PROMPT((char*)"Press any key to terminate.\n");
 
 	PFTerminate();
 

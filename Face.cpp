@@ -124,4 +124,111 @@ bool UltraFace::RayIntersectsTriangleDist(
         return false;
 }
 
+bool UltraFace::IsPointInside(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, Eigen::Vector3d& projectedPoint)
+{
+    // https://math.stackexchange.com/questions/544946/determine-if-projection-of-3d-point-onto-plane-is-within-a-triangle
+    Eigen::Vector3d u = (vertices[m_vertices[1]].m_position - vertices[m_vertices[0]].m_position);
+    Eigen::Vector3d v = (vertices[m_vertices[2]].m_position - vertices[m_vertices[0]].m_position);
+    Eigen::Vector3d n = m_plane.block<3, 1>(0, 0);
+    n = u.cross(v);
+    Eigen::Vector3d w = (point - vertices[m_vertices[0]].m_position);
+    double gamma = ((u.cross(w)).dot(n)) / n.dot(n);
+    double beta = ((w.cross(v)).dot(n)) / n.dot(n);
+    double alpha = 1.0 - gamma - beta;
+    projectedPoint = alpha * vertices[m_vertices[0]].m_position + beta * vertices[m_vertices[1]].m_position + gamma * vertices[m_vertices[2]].m_position;
+    return (alpha >= 0.0) && (alpha <= 1.0) && (beta >= 0.0) && (beta <= 1.0) && (gamma >= 0.0) && (gamma <= 1.0);
+}
+
+double UltraFace::DistPointPlane(const Eigen::Vector3d& point)
+{
+    return abs(m_plane[0] * point[0] + m_plane[1] * point[1] + m_plane[2] * point[2] + m_plane[3]);
+}
+
+double UltraFace::ClampDistPoint(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, Eigen::Vector3d& closestPoint)
+{
+    if (IsPointInside(vertices, point, closestPoint))
+    {
+        return DistPointPlane(point);
+    }
+    double dist1 = (vertices[m_vertices[0]].m_position - point).norm();
+    double dist2 = (vertices[m_vertices[1]].m_position - point).norm();
+    double dist3 = (vertices[m_vertices[2]].m_position - point).norm();
+    if (dist1 < dist2)
+    {
+        if (dist1 < dist3)
+        {
+            closestPoint = vertices[m_vertices[0]].m_position;
+            return dist1;
+        }
+        else
+        {
+            closestPoint = vertices[m_vertices[2]].m_position;
+            return dist3;
+        }
+    }
+    else
+    {
+        if (dist2 < dist3)
+        {
+            closestPoint = vertices[m_vertices[1]].m_position;
+            return dist2;
+        }
+        else
+        {
+            closestPoint = vertices[m_vertices[2]].m_position;
+            return dist3;
+        }
+    }
+}
+
+bool UltraFace::MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance)
+{
+#define MATLAB_DEBUG 0
+
+    double dir = m_plane[0] * point[0] + m_plane[1] * point[1] + m_plane[2] * point[2] + m_plane[3];
+    double K1 = m_plane[0] * direction[0] + m_plane[1] * direction[1] + m_plane[2] * direction[2];
+    double K2 = m_plane[0] * point[0] + m_plane[1] * point[1] + m_plane[2] * point[2] + m_plane[3];
+    double t = K2 / (1 - K1);
+    if (t < 0.0)
+        t = -K2 / (1 + K1);
+    if (t <= 1.0E-3)
+        return false;
+    
+    Eigen::Vector3d proposed = { point[0] + direction[0] * t, point[1] + direction[1] * t, point[2] + direction[2] * t };
+    Eigen::Vector3d newVec = (proposed - point);
+    newVec.normalize();
+    if (direction.dot(newVec) < 0.0)
+        return false;
+    Eigen::Vector3d projected = { 0.0, 0.0, 0.0 };
+    bool isInside = (IsPointInside(vertices, proposed, projected));
+#if MATLAB_DEBUG
+    printf("\nclose all; clear all; \n");
+    printf("V1 = [%f %f %f];\n", vertices[m_vertices[0]].m_position[0], vertices[m_vertices[0]].m_position[1], vertices[m_vertices[0]].m_position[2]);
+    printf("V2 = [%f %f %f];\n", vertices[m_vertices[1]].m_position[0], vertices[m_vertices[1]].m_position[1], vertices[m_vertices[1]].m_position[2]);
+    printf("V3 = [%f %f %f];\n", vertices[m_vertices[2]].m_position[0], vertices[m_vertices[2]].m_position[1], vertices[m_vertices[2]].m_position[2]);
+    printf("V=[V1;V2;V3;V1];\n");
+    printf("P=[%f %f %f];\n", point[0], point[1], point[2]);
+    printf("D=[%f %f %f];\n", direction[0], direction[1], direction[2]);
+    printf("t=%f;\n", t);
+    printf("Projected=[%f %f %f];\n", projected[0], projected[1], projected[2]);
+    printf("Proposed=[%f %f %f];\n", proposed[0], proposed[1], proposed[2]);
+    printf("figure, axis equal;hold on;\n");
+    printf("plot3(V(:,1), V(:,2), V(:,3));\n");
+    printf("scatter3(P(1), P(2), P(3),'o','r', 'filled');\n");
+    printf("plot3([P(1) P(1)+D(1)*5], [P(2) P(2)+D(2)*5], [P(3) P(3)+D(3)*5],'g');\n");
+    printf("scatter3(Proposed(1), Proposed(2), Proposed(3),'*','b');\n");
+    printf("scatter3(Projected(1), Projected(2), Projected(3),'+','b');\n");
+#endif
+    //point = proposed;
+    if (isInside)
+    {
+         distance = t;
+    }
+
+    return isInside;
+}
+
+
+
+
 

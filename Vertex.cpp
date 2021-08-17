@@ -80,4 +80,25 @@ void UltraVertex::CalcCurvature(std::vector<UltraFace>& faces, std::vector<Ultra
     m_curvature = -sumAngDiffs * 0.5 /  M_PI * sumDotSpopkes / abs(sumDotSpopkes);
 }
 
+bool UltraVertex::MaxDistToSkeleton(Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance)
+{
+    double B = 2 * direction[0] * (point[0] - m_position[0]) +
+        2 * direction[1] * (point[1] - m_position[1]) +
+        2 * direction[2] * (point[2] - m_position[2]);
+    if (B == 0.0)
+        return 0.0;
+    double C = (point - m_position).squaredNorm();
+    double t = C / B;
+    //point = point + Eigen::Vector3d( t*direction[0], t*direction[1], t*direction[2]  );
+    distance = t;
+    return (t>0);
+}
+
+void UltraVertex::MoveToSkeleton(std::vector<UltraFace>& faces, std::vector<UltraEdge>& edges, std::vector<UltraVertex>& vertices, double direction, double maxDistance)
+{
+    Eigen::Vector3d normal = m_normal * direction;
+}
+
+
+
 

@@ -19,6 +19,9 @@ public:
     void CalcNormal(std::vector<UltraFace>& faces, std::vector<UltraEdge>& edges, bool byArea);
 	int Status() { return m_status; }
     void CalcCurvature(std::vector<UltraFace>& faces, std::vector<UltraEdge>& edges, std::vector<UltraVertex>& vertices);
+    bool MaxDistToSkeleton(Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance);
+    void MoveToSkeleton(std::vector<UltraFace>& faces, std::vector<UltraEdge>& edges, std::vector<UltraVertex>& vertices, double direction, double maxDistance);
+
 
 
 	int m_index = -1;

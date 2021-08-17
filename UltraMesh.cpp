@@ -64,7 +64,10 @@ void UltraMesh::MapEdges()
 		m_edges.push_back(UltraEdge(m_faces[idx].m_vertices[0], m_faces[idx].m_vertices[1], (int)idx));
 		m_edges.push_back(UltraEdge(m_faces[idx].m_vertices[1], m_faces[idx].m_vertices[2], (int)idx));
 		m_edges.push_back(UltraEdge(m_faces[idx].m_vertices[2], m_faces[idx].m_vertices[0], (int)idx));
-	}
+        m_faces[idx].m_edges[0] = idx * 3;
+        m_faces[idx].m_edges[1] = idx * 3 + 1;
+        m_faces[idx].m_edges[2] = idx * 3 + 2;
+    }
 	std::vector <VVF> map1;							// Maps all Edges V1->V2 (direct)
 	std::vector <VVF> map2;							// Maps all Edges V2->V1 (reversed)
 
@@ -293,6 +296,236 @@ void UltraMesh::Smooth()
 
 
 // "Adaptive offset" function
+/*
+void UltraMesh::OffsetBySkeleton(double maxOffset)
+{
+    // set direction Normal multiplier
+    bool inwards = (maxOffset < 0.0);
+    maxOffset = abs(maxOffset);
+    double direction = (inwards) ? -1.0 : 1.0;								// bool to double factor
+
+    // A simple performance booster mechanism - divide all faces into 3D array of containers
+    // ("buckets") for more efficient search.
+    // Nbuckets size is set by thumb rule as the fourth root of the number of vertices.
+    int Nbuckets = std::max(2, int(sqrt(sqrt(m_vertices.size()))));
+
+    // The buckets array (Nbuckets*Nbuckets*Nbuckets) is arranged as a vector.
+    // TBD check for more robust implementation such as KDtree
+    std::vector <Bucket> buckets;
+
+    // Each bucket is overlapping its neighbors by half of maxDisplacement. This bucketMargin is needed for
+    // checking "proposed" vertices positions (m_dispos) that are initially set to maxDisplacement.
+    double bucketMargins = maxOffset * 0.5;
+
+    // Each bucket size "a", excluding margins, is set by dividing the total vertices bounding box by Nbuckets
+    double ax = (m_bounds[1] - m_bounds[0]) / Nbuckets;
+    double ay = (m_bounds[3] - m_bounds[2]) / Nbuckets;
+    double az = (m_bounds[5] - m_bounds[4]) / Nbuckets;
+
+    // Loop over entire volume and set VolumeOfInterest for each bucket, then push it into buckets.
+    for (int i = 0; i < Nbuckets; i++)
+    {
+        for (int j = 0; j < Nbuckets; j++)
+        {
+            for (int k = 0; k < Nbuckets; k++)
+            {
+                Bucket bucket = Bucket();
+                Bounds box = { m_bounds[0] + k * ax - bucketMargins, m_bounds[0] + (k + 1) * ax + bucketMargins,
+                    m_bounds[2] + j * ay - bucketMargins, m_bounds[2] + (j + 1) * ay + bucketMargins,
+                    m_bounds[4] + i * az - bucketMargins, m_bounds[4] + (i + 1) * az + bucketMargins };
+                memcpy(&bucket.m_bounds[0], &box[0], sizeof(Bounds));
+                buckets.push_back(bucket);
+            }
+        }
+    }
+    // buckets are ready, hence push faces into relevant buckets (each face can appear in more than one bucket)
+    for (size_t i = 0; i < m_faces.size(); i++)
+    {
+        // found variable counts the bucket insertions. it's value shall always be in range 1..3
+        int found = 0;
+        int faceVs[3] = { m_faces[i].m_vertices[0], m_faces[i].m_vertices[1],m_faces[i].m_vertices[2] };
+        for (size_t j = 0; j < 3; j++)
+        {
+            // After three vertices are considered in buckets, no need for further checking.
+            if (found > 2)
+                break;
+            // Each face can be recognized by 1-3 buckets, depending on each vertex location
+
+            for (size_t k = 0; k < buckets.size(); k++)
+            {
+                if ((m_vertices[faceVs[j]].m_position[0] >= buckets[k].m_bounds[0]) &&
+                    (m_vertices[faceVs[j]].m_position[0] <= buckets[k].m_bounds[1]) &&
+                    (m_vertices[faceVs[j]].m_position[1] >= buckets[k].m_bounds[2]) &&
+                    (m_vertices[faceVs[j]].m_position[1] <= buckets[k].m_bounds[3]) &&
+                    (m_vertices[faceVs[j]].m_position[2] >= buckets[k].m_bounds[4]) &&
+                    (m_vertices[faceVs[j]].m_position[2] <= buckets[k].m_bounds[5]))
+                {
+                    // found inside
+                    found++;
+                    buckets[k].m_triangles.insert((int)i);
+#ifdef DEBUG_MODE
+                    isInside = true;
+#endif
+                }
+            }
+        }
+#ifdef DEBUG_MODE
+        if (!isInside)
+        {
+            // should not happed
+            printf("Face %d not in any bucket\n", (int)i);
+        }
+#endif
+    }
+
+    // Main vertex displacement processing:
+    // For each vertex, check all nearby faces for distance. In case of vertex displacement is overruled by a closer
+    // face "F", then a new equilibrium point is calculated, where the displacement equals the closest distance to
+    // the said face F.
+
+    double stepOffset = maxOffset/1 ;
+    for (int iStep = 0; iStep < 1; iStep++)
+    {
+        for (size_t i = 0; i < m_vertices.size(); i++)
+        {
+            // progress message every (big prime number) loops.
+            if (i % 1000 == 0)																			// saves output time
+                printf("\rProcessing...%3.1f%%", double(i) / m_vertices.size()*100.0);
+            // vertex to be displaced
+
+            UltraVertex* vertex = &m_vertices[i];
+
+            // set default displacement to maximum, considering normal direction and in/out factor.
+            vertex->m_shadowPosition = vertex->m_position + vertex->m_normal * direction * stepOffset;
+            //if (abs(vertex->m_position[0]) > 9.99)
+            //    continue;
+
+            // eliminate infinite loop in case of a bad vertex
+            if (vertex->m_normal.norm() == 0)
+            {
+                vertex->m_limit = 0.0;
+                continue;
+            }
+            // distance limit from original point
+            vertex->m_limit = stepOffset;
+
+
+            // Provided that vertex will be moved, check for overruling by looping over buckets and iterating on
+            // nearby faces.
+            for (size_t j = 0; j < buckets.size(); j++)
+            {
+                if ((m_vertices[i].m_shadowPosition[0] < buckets[j].m_bounds[0]) ||
+                    (m_vertices[i].m_shadowPosition[0] > buckets[j].m_bounds[1]) ||
+                    (m_vertices[i].m_shadowPosition[1] < buckets[j].m_bounds[2]) ||
+                    (m_vertices[i].m_shadowPosition[1] > buckets[j].m_bounds[3]) ||
+                    (m_vertices[i].m_shadowPosition[2] < buckets[j].m_bounds[4]) ||
+                    (m_vertices[i].m_shadowPosition[2] > buckets[j].m_bounds[5]))
+                    continue; // outside bucket
+                // Iterate over relevant faces
+                std::set<int>::iterator it = buckets[j].m_triangles.begin();
+
+                // As long as there are nearby triangles to check
+                while (it != buckets[j].m_triangles.end())
+                {
+                    // check nearby triangle "face"
+                    UltraFace* face = &m_faces[*it];
+                    // Exclude  triangles touching (neighboring of) "vertex"
+                    if ((face->m_vertices[0] != vertex->m_index) && (face->m_vertices[1] != vertex->m_index) && (face->m_vertices[2] != vertex->m_index))
+                    {
+                        // Check minimal distance from proposed new vertex position to either of face's vertices
+                        Eigen::Vector3d TestPoint = vertex->m_position + vertex->m_normal * direction * vertex->m_limit;
+                        Eigen::Vector3d v2p, P;
+                        double minDist = face->ClampDistPoint(m_vertices, TestPoint, P);                    // In case minimal distance is closer to "face", yet significant, perform
+                        // a further investigation
+                        if ((vertex->m_limit > 1.0E-5) && (minDist < vertex->m_limit)) // no point at limit < machine resolution (10u)
+                        {
+                            // set closest vertex as point P
+                            // Minimal distance is closer than current limit - hence update limit to the point of equilibrium
+                            if (minDist < vertex->m_limit)
+                            {
+                                v2p = P - vertex->m_position;
+                                double len = v2p.norm();
+                                v2p.normalize();
+                                double cosAng = abs(v2p.dot(vertex->m_normal * direction));
+                                bool modified = false;
+                                // Calculate point of equilibrium
+                                if (cosAng > 0.0)
+                                {
+                                    // Point of equilibrium in case the overruling face is not perpendicular to vertex normal
+                                    double newLimit = std::min(vertex->m_limit, (len * 0.4999 / cosAng)); // notch below 0.5 to eliminate infinite loop on roundings.
+                                    if (newLimit < vertex->m_limit - EPSILON6)
+                                    {
+                                        vertex->m_limit = newLimit;
+                                        modified = true;
+                                    }
+                                }
+                                else
+                                {
+                                    if ((vertex->m_position - P).norm() > 1.0E-5)
+                                    {
+                                        // Point of equilibrium in case the overruling face is perpendicular to vertex normal
+                                        double newLimit = ((vertex->m_position + P) * 0.5).norm();
+                                        if (newLimit < vertex->m_limit - EPSILON6)
+                                        {
+                                            vertex->m_limit = newLimit;
+                                            modified = true;
+                                        }
+                                    }
+                                }
+#if DEBUG_MODE
+                                Eigen::Vector3d minP = vertex->m_pos + vertex->m_normal * vertex->m_limit;
+                                double check1 = (vertex->m_pos - minP).norm();
+                                double check2 = (P - minP).norm();
+                                if (abs(check1 - check2) > maxCheckDiff)
+                                {
+                                    maxCheckDiff = abs(check1 - check2);
+                                    printf("check1=%f, check2=%f  Diff=%f\n", check1, check2, maxCheckDiff);
+                                }
+#endif
+                                // Restart iterations for other overruling faces
+                                if (modified)
+                                    it = buckets[j].m_triangles.begin();
+                            }
+                        }
+                    }
+                    it++;
+                }
+            }
+            // Iterations completed, m_limit is set to optimum hence m_dispos is set.
+            vertex->m_shadowPosition = vertex->m_position + direction * vertex->m_normal * vertex->m_limit;
+        }
+        printf("\rProcessing...%3.1f%%\n", 100.0);
+        // Vertex repositioning completed, updating FlexiVertex internal variables
+        for (size_t i = 0; i < m_vertices.size(); i++)
+        {
+            UltraVertex* vertex = &m_vertices[i];
+            vertex->m_position = vertex->m_shadowPosition;
+        }
+
+        // Recalculate edges vectors after vertices were moved
+        for (size_t i = 0; i < m_edges.size(); i++)
+        {
+            m_edges[i].CalcVector(m_vertices);
+        }
+
+        // Recalculate faces planes after vertices were moved
+        for (size_t i = 0; i < m_faces.size(); i++)
+        {
+            m_faces[i].CalcPlane(m_vertices[m_faces[i].m_vertices[0]].m_position,
+                m_vertices[m_faces[i].m_vertices[1]].m_position,
+                m_vertices[m_faces[i].m_vertices[2]].m_position);
+        }
+
+        // Recalculate vertices normals after vertices were moved
+        for (size_t i = 0; i < m_vertices.size(); i++)
+        {
+            m_vertices[i].CalcNormal(m_faces, m_edges, false);
+        }
+    }
+
+}
+
+*/
 
 void UltraMesh::OffsetBySkeleton(double maxOffset)
 {
@@ -380,162 +613,107 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
     // face "F", then a new equilibrium point is calculated, where the displacement equals the closest distance to 
     // the said face F.
 
-    for (size_t i = 0; i < m_vertices.size(); i++)
+    double stepOffset = maxOffset/1 ;
+    for (int iStep = 0; iStep < 1; iStep++)
     {
-        // progress message every (big prime number) loops.
-        if (i % 1000 == 0)																			// saves output time
-            printf("\rProcessing...%3.1f%%", double(i) / m_vertices.size()*100.0);
-        // vertex to be displaced
-
-        UltraVertex* vertex = &m_vertices[i];
-
-        // set default displacement to maximum, considering normal direction and in/out factor.
-        vertex->m_shadowPosition = vertex->m_position + vertex->m_normal * direction * maxOffset;
-
-        // eliminate infinite loop in case of a bad vertex
-        if (vertex->m_normal.norm() == 0)
+        for (size_t vertexIdx = 0; vertexIdx < m_vertices.size(); vertexIdx++)
         {
-            vertex->m_limit = 0.0;
-            continue;
-        }
-        // distance limit from original point
-        vertex->m_limit = maxOffset;
+            // progress message every (big prime number) loops.
+            if (vertexIdx % 87 == 0)																			// saves output time
+                printf("\rProcessing...%3.1f%%", double(vertexIdx) / m_vertices.size()*100.0);
+            // vertex to be displaced
 
+            UltraVertex* vertex = &m_vertices[vertexIdx];
+            double maxDist = maxOffset, dist = 0.0;
 
-        // Provided that vertex will be moved, check for overruling by looping over buckets and iterating on
-        // nearby faces.
-        for (size_t j = 0; j < buckets.size(); j++)
-        {
-            if ((m_vertices[i].m_shadowPosition[0] < buckets[j].m_bounds[0]) ||
-                (m_vertices[i].m_shadowPosition[0] > buckets[j].m_bounds[1]) ||
-                (m_vertices[i].m_shadowPosition[1] < buckets[j].m_bounds[2]) ||
-                (m_vertices[i].m_shadowPosition[1] > buckets[j].m_bounds[3]) ||
-                (m_vertices[i].m_shadowPosition[2] < buckets[j].m_bounds[4]) ||
-                (m_vertices[i].m_shadowPosition[2] > buckets[j].m_bounds[5]))
-                continue; // outside bucket
-            // Iterate over relevant faces
-            std::set<int>::iterator it = buckets[j].m_triangles.begin();
-
-            // As long as there are nearby triangles to check
-            while (it != buckets[j].m_triangles.end())
+            // Provided that vertex will be moved, check for overruling by looping over buckets and iterating on
+            // nearby faces.
+            for (size_t bucketIdx = 0; bucketIdx < buckets.size(); bucketIdx++)
             {
-                // check nearby triangle "face"
-                UltraFace* face = &m_faces[*it];
-                // Exclude  triangles touching (neighboring of) "vertex" 
-                if ((face->m_vertices[0] != vertex->m_index) && (face->m_vertices[1] != vertex->m_index) && (face->m_vertices[2] != vertex->m_index))
+                if ((m_vertices[vertexIdx].m_position[0] + maxOffset < buckets[bucketIdx].m_bounds[0]) ||
+                    (m_vertices[vertexIdx].m_position[0] - maxOffset > buckets[bucketIdx].m_bounds[1]) ||
+                    (m_vertices[vertexIdx].m_position[1] + maxOffset < buckets[bucketIdx].m_bounds[2]) ||
+                    (m_vertices[vertexIdx].m_position[1] - maxOffset > buckets[bucketIdx].m_bounds[3]) ||
+                    (m_vertices[vertexIdx].m_position[2] + maxOffset < buckets[bucketIdx].m_bounds[4]) ||
+                    (m_vertices[vertexIdx].m_position[2] - maxOffset > buckets[bucketIdx].m_bounds[5]))
+                    continue; // outside bucket
+                // Iterate over relevant faces
+                std::set<int>::iterator bucketIt = buckets[bucketIdx].m_triangles.begin();
+
+                // As long as there are nearby triangles to check
+                while (bucketIt != buckets[bucketIdx].m_triangles.end())
                 {
-                    // Check minimal distance from proposed new vertex position to either of face's vertices
-                    Eigen::Vector3d TestPoint = vertex->m_position + vertex->m_normal * direction * vertex->m_limit;
-                    double dist1 = (m_vertices[face->m_vertices[0]].m_position - TestPoint).norm();
-                    double dist2 = (m_vertices[face->m_vertices[1]].m_position - TestPoint).norm();
-                    double dist3 = (m_vertices[face->m_vertices[2]].m_position - TestPoint).norm();
-                    double minDist = std::min(dist1, std::min(dist2, dist3));
-                    // In case minimal distance is closer to "face", yet significant, perform 
-                    // a further investigation
-                    if ((vertex->m_limit > 1.0E-5) && (minDist < vertex->m_limit)) // no point at limit < machine resolution (10u)
+                    // check nearby triangle "face"
+                    UltraFace* face = &m_faces[*bucketIt];
+                    //if (direction.dot(m_plane.block<3, 1>(0, 0)) > 0.0)
+ //    return false;
+
+                    if ((face->m_vertices[0] == vertexIdx) || (face->m_vertices[1] == vertexIdx) || (face->m_vertices[2] == vertexIdx))
                     {
-                        // set closest vertex as point P
-                        Eigen::Vector3d v2p, P;
-                        if (dist1 == minDist)
-                            P = m_vertices[face->m_vertices[0]].m_position;
-                        else if (dist2 == minDist)
-                            P = m_vertices[face->m_vertices[1]].m_position;
-                        else
-                            P = m_vertices[face->m_vertices[2]].m_position;
-
-
-                        // Extract "face" normal direction from plane equation
-                        Eigen::Vector3d faceNormal = -direction * face->m_plane.block<3, 1>(0, 0);
-
-                        // Check for point closer than closest vertex (testPoint projection on face "face") as 
-                        // the closest point
-                        Eigen::Vector3d faceTouchingPoint = { 0.0, 0.0, 0.0 };
-                        Eigen::Vector3d FTP = { 0.0, 0.0, 0.0 };;
-                        if (face->RayIntersectsTriangleDist(m_vertices, vertex->m_shadowPosition, faceNormal, faceTouchingPoint))
+                        bucketIt++;
+                        continue;
+                    }
+                    if (face->MaxDistToSkeleton(m_vertices, vertex->Position(), vertex->m_normal * direction, dist))
+                    {
+                        maxDist = std::min(maxDist, dist);
+                    }
+                    else
+                    {
+                        for (int edgeIdx = 0; edgeIdx < 3; edgeIdx++)
                         {
-                            // closest point is the projected testPoint on face (faceTouchingPoint)
-                            double disTouch = (faceTouchingPoint - TestPoint).norm();
-                            // Update minimal distance
-                            if (disTouch < minDist)
+                            UltraEdge* edge = &m_edges[face->m_edges[edgeIdx]];
+                            if(edge->MaxDistToSkeleton(m_vertices, vertex->Position(), vertex->m_normal * direction, dist))
                             {
-                                P = faceTouchingPoint;
-                                minDist = disTouch;
+                                maxDist = std::min(maxDist, dist);
                             }
-                        }
-                        // Minimal distance is closer than current limit - hence update limit to the point of equilibrium
-                        if (minDist < vertex->m_limit)
-                        {
-                            v2p = P - vertex->m_position;
-                            double len = v2p.norm();
-                            v2p.normalize();
-                            double cosAng = v2p.dot(vertex->m_normal * direction);
-                            bool modified = false;
-                            // Calculate point of equilibrium
-                            if (abs(cosAng) > 0.0)
-                            {
-                                // Point of equilibrium in case the overruling face is not perpendicular to vertex normal 
-                                vertex->m_limit = std::min(vertex->m_limit, (len * 0.4999 / cosAng)); // notch below 0.5 to eliminate infinite loop on roundings.
-                                modified = true;
-                            }
-                            else
-                            {
-                                if ((vertex->m_position - P).norm() > 1.0E-5)
-                                {
-                                    // Point of equilibrium in case the overruling face is perpendicular to vertex normal
-                                    vertex->m_limit = ((vertex->m_position + P) * 0.5).norm();
-                                    modified = true;
-                                }
-                            }
-#if DEBUG_MODE
-                            Eigen::Vector3d minP = vertex->m_pos + vertex->m_normal * vertex->m_limit;
-                            double check1 = (vertex->m_pos - minP).norm();
-                            double check2 = (P - minP).norm();
-                            if (abs(check1 - check2) > maxCheckDiff)
-                            {
-                                maxCheckDiff = abs(check1 - check2);
-                                printf("check1=%f, check2=%f  Diff=%f\n", check1, check2, maxCheckDiff);
-                            }
-#endif
-                            // Restart iterations for other overruling faces
-                            if (modified)
-                                it = buckets[j].m_triangles.begin();
                         }
                     }
+                    for (int vertIdx = 0; vertIdx < 3; vertIdx++)
+                    {
+                        if (m_vertices[face->m_vertices[vertIdx]].MaxDistToSkeleton(vertex->Position(), vertex->m_normal * direction, dist))
+                        {
+                            maxDist = std::min(maxDist, dist);
+                        }
+
+                    }
+
+                    bucketIt++;
                 }
-                it++;
             }
+            // Iterations completed, m_limit is set to optimum hence m_dispos is set.
+            vertex->m_shadowPosition = vertex->m_position + direction * vertex->m_normal * maxDist;
         }
-        // Iterations completed, m_limit is set to optimum hence m_dispos is set.
-        vertex->m_shadowPosition = vertex->m_position + direction * vertex->m_normal * vertex->m_limit;
-    }
-    printf("\rProcessing...%3.1f%%\n", 100.0);
-    // Vertex repositioning completed, updating FlexiVertex internal variables
-    for (size_t i = 0; i < m_vertices.size(); i++)
-    {
-        UltraVertex* vertex = &m_vertices[i];
-        vertex->m_position = vertex->m_shadowPosition;
+        printf("\rProcessing...%3.1f%%\n", 100.0);
+        // Vertex repositioning completed, updating FlexiVertex internal variables
+        for (size_t i = 0; i < m_vertices.size(); i++)
+        {
+            UltraVertex* vertex = &m_vertices[i];
+            vertex->m_thickness = (vertex->m_position - vertex->m_shadowPosition).norm();
+            vertex->m_position = vertex->m_shadowPosition;
+        }
+
+        // Recalculate edges vectors after vertices were moved
+        for (size_t i = 0; i < m_edges.size(); i++)
+        {
+            m_edges[i].CalcVector(m_vertices);
+        }
+
+        // Recalculate faces planes after vertices were moved
+        for (size_t i = 0; i < m_faces.size(); i++)
+        {
+            m_faces[i].CalcPlane(m_vertices[m_faces[i].m_vertices[0]].m_position,
+                m_vertices[m_faces[i].m_vertices[1]].m_position,
+                m_vertices[m_faces[i].m_vertices[2]].m_position);
+        }
+
+        // Recalculate vertices normals after vertices were moved
+        for (size_t i = 0; i < m_vertices.size(); i++)
+        {
+            m_vertices[i].CalcNormal(m_faces, m_edges, false);
+        }
     }
 
-    // Recalculate edges vectors after vertices were moved
-    for (size_t i = 0; i < m_edges.size(); i++)
-    {
-        m_edges[i].CalcVector(m_vertices);
-    }
-
-    // Recalculate faces planes after vertices were moved
-    for (size_t i = 0; i < m_faces.size(); i++)
-    {
-        m_faces[i].CalcPlane(m_vertices[m_faces[i].m_vertices[0]].m_position, 
-            m_vertices[m_faces[i].m_vertices[1]].m_position,
-            m_vertices[m_faces[i].m_vertices[2]].m_position);
-    }
-
-    // Recalculate vertices normals after vertices were moved
-    for (size_t i = 0; i < m_vertices.size(); i++)
-    {
-        m_vertices[i].CalcNormal(m_faces, m_edges, false);
-    }
- }
+}
 
 
 

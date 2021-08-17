@@ -33,6 +33,10 @@ public:
         const Eigen::Vector3d& rayOrigin,
         const Eigen::Vector3d& rayVector,
         Eigen::Vector3d& outIntersectionPoint);
+    bool IsPointInside(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, Eigen::Vector3d& projectedPoint);
+    double DistPointPlane(const Eigen::Vector3d& point);
+    double ClampDistPoint(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, Eigen::Vector3d& closestPoint);
+    bool MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance);
 
 
 	Eigen::Vector3i m_vertices = { 0, 0, 0 };
