@@ -118,6 +118,8 @@ void UltraMesh::MapEdges()
         UltraEdge& edge = m_edges[edgeIdx];
         m_vertices[edge.m_idxV1].m_connectedEdges.push_back((int)edgeIdx);
     }
+    for (auto& edge : m_edges)
+        edge.CalcVector(m_vertices);
 
 
 }
@@ -136,6 +138,12 @@ void UltraMesh::CalcNormals(bool byArea)
 	{
         vertex.CalcNormal(m_faces, m_edges, byArea);
 	}
+}
+
+void UltraMesh::CalcCurvature()
+{
+    for (UltraVertex& vertex : m_vertices)
+        vertex.CalcCurvature(m_faces, m_edges, m_vertices);
 }
 
 Bounds* UltraMesh::CalcBounds()
@@ -533,11 +541,12 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
     bool inwards = (maxOffset < 0.0);
     maxOffset = abs(maxOffset);
     double direction = (inwards) ? -1.0 : 1.0;								// bool to double factor
-
+ 
     // A simple performance booster mechanism - divide all faces into 3D array of containers
     // ("buckets") for more efficient search. 
     // Nbuckets size is set by thumb rule as the fourth root of the number of vertices.
     int Nbuckets = std::max(2, int(sqrt(sqrt(m_vertices.size()))));
+    printf("Number of buckets: %d\n", Nbuckets);
 
     // The buckets array (Nbuckets*Nbuckets*Nbuckets) is arranged as a vector. 
     // TBD check for more robust implementation such as KDtree
@@ -625,6 +634,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
 
             UltraVertex* vertex = &m_vertices[vertexIdx];
             double maxDist = maxOffset, dist = 0.0;
+            Eigen::Vector3d position = vertex->Position() + direction * vertex->m_normal * abs(vertex->m_curvature) / (1 - abs(vertex->m_curvature));
 
             // Provided that vertex will be moved, check for overruling by looping over buckets and iterating on
             // nearby faces.
@@ -653,7 +663,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
                         bucketIt++;
                         continue;
                     }
-                    if (face->MaxDistToSkeleton(m_vertices, vertex->Position(), vertex->m_normal * direction, dist))
+                    if (face->MaxDistToSkeleton(m_vertices, position, vertex->m_normal * direction, dist))
                     {
                         maxDist = std::min(maxDist, dist);
                     }
@@ -662,7 +672,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
                         for (int edgeIdx = 0; edgeIdx < 3; edgeIdx++)
                         {
                             UltraEdge* edge = &m_edges[face->m_edges[edgeIdx]];
-                            if(edge->MaxDistToSkeleton(m_vertices, vertex->Position(), vertex->m_normal * direction, dist))
+                            if(edge->MaxDistToSkeleton(m_vertices, position, vertex->m_normal * direction, dist))
                             {
                                 maxDist = std::min(maxDist, dist);
                             }
@@ -670,7 +680,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
                     }
                     for (int vertIdx = 0; vertIdx < 3; vertIdx++)
                     {
-                        if (m_vertices[face->m_vertices[vertIdx]].MaxDistToSkeleton(vertex->Position(), vertex->m_normal * direction, dist))
+                        if (m_vertices[face->m_vertices[vertIdx]].MaxDistToSkeleton(position, vertex->m_normal * direction, dist))
                         {
                             maxDist = std::min(maxDist, dist);
                         }
@@ -681,7 +691,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
                 }
             }
             // Iterations completed, m_limit is set to optimum hence m_dispos is set.
-            vertex->m_shadowPosition = vertex->m_position + direction * vertex->m_normal * maxDist;
+            vertex->m_shadowPosition = position + direction * vertex->m_normal * maxDist;
         }
         printf("\rProcessing...%3.1f%%\n", 100.0);
         // Vertex repositioning completed, updating FlexiVertex internal variables
@@ -780,9 +790,10 @@ void UltraMesh::SaveAsVRML(const std::wstring fileName, const double redYellow, 
     myfile << "\t\t\tcolor\n\t\t\t[\n";
     for (auto& vertex : m_vertices)
     {
-        if (vertex.m_thickness < redYellow)
+        double thickness = vertex.m_thickness * (1-vertex.m_curvature);
+        if (thickness < redYellow)
             myfile << "\t\t\t" << "1.0\t0.0\t0.0\n";
-        else  if (vertex.m_thickness < yellowGreen)
+        else  if (thickness < yellowGreen)
             myfile << "\t\t\t" << "1.0\t1.0\t0.0\n";
         else
             myfile << "\t\t\t" << "0.0\t1.0\t0.0\n";

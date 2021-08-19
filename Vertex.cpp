@@ -53,7 +53,7 @@ void UltraVertex::CalcNormal(std::vector<UltraFace>& faces, std::vector<UltraEdg
 void UltraVertex::CalcCurvature(std::vector<UltraFace>& faces, std::vector<UltraEdge>& edges, std::vector<UltraVertex>& vertices)
 {
     double sumAngDiffs = 0.0;
-    double sumDotSpopkes = 0.0;
+    double sumDotSpokes = 0.0;
     for (size_t i = 0; i < m_connectedEdges.size(); i++)                 // Loop over touching faces
     {
         UltraEdge* edge = &edges[m_connectedEdges[i]];                       // Extract touhing edge ("spoke") and its twin
@@ -72,12 +72,13 @@ void UltraVertex::CalcCurvature(std::vector<UltraFace>& faces, std::vector<Ultra
             v2 = edge->m_vector;
             v2.normalize();
             double dotSpoke = (m_normal.dot(v2));                                             // Normalized spoke vector projected on m_normal
-            sumDotSpopkes += dotSpoke;                                                                      // Accumulate spokes projected on m_normal
+            sumDotSpokes += dotSpoke;                                                                      // Accumulate spokes projected on m_normal
         }
     }
     // sumAngDiffs can vary from 0.0 (all faces lay on the same plane) to ~2*PI (for very sharp cone tip)
     // sumDotSpokes is used for it's sign whether convex or concave
-    m_curvature = -sumAngDiffs * 0.5 /  M_PI * sumDotSpopkes / abs(sumDotSpopkes);
+    if (sumDotSpokes != 0.0)
+        m_curvature = -sumAngDiffs * 0.5 / M_PI * sumDotSpokes / abs(sumDotSpokes);
 }
 
 bool UltraVertex::MaxDistToSkeleton(Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance)

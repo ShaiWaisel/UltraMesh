@@ -12,8 +12,8 @@
 
 #define PROMPT(_str) PgWindowText(_str);
 #define JOURNAL_DEBUG 0
-#define MINIMAL_WALL_THICKNESS 28
-#define REMESH false
+#define MINIMAL_WALL_THICKNESS 16
+#define REMESH true
 #define TIME_INTERVAL(end, start) double(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()) / 1000.0
 
 
@@ -208,8 +208,8 @@ int main(int argc, char* argv[])
         initSolidRemeshOpts.remesh_limits = PV_REMESH_LIMIT_EDGE_LENGTH;
         initSolidRemeshOpts.keep_boundaries = TRUE;
         initSolidRemeshOpts.curvature_sensitive_remeshing = TRUE;
-        initSolidRemeshOpts.max_edge_length = MINIMAL_WALL_THICKNESS / 3;
-        initSolidRemeshOpts.edge_length = MINIMAL_WALL_THICKNESS / 3;
+        initSolidRemeshOpts.max_edge_length = MINIMAL_WALL_THICKNESS ;
+        initSolidRemeshOpts.edge_length = MINIMAL_WALL_THICKNESS;
         status += PFSolidRemesh(model, &initSolidRemeshOpts);
     }
 	printf("Building mesh..\n");
@@ -217,6 +217,7 @@ int main(int argc, char* argv[])
 	ultraMesh.CalcFaces();
 	ultraMesh.MapEdges();
 	ultraMesh.CalcNormals(false);
+    ultraMesh.CalcCurvature();
 	printf("Calculating buckets..\n");
 	ultraMesh.CalcBuckets();
 	int rays = 1;

@@ -34,6 +34,7 @@ public:
 	void CalcFaces();
 	void CalcNormals(bool byArea);
 	void CalcBuckets();
+    void CalcCurvature();
 	Bounds* CalcBounds();
 	std::vector<UltraFace> IntersectWithRay(Eigen::Vector3d& origin, Eigen::Vector3d& direction);
     void Smooth();
