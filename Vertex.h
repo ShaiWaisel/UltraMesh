@@ -28,6 +28,7 @@ public:
 	Eigen::Vector3d m_position = { 0.0, 0.0, 0.0 };
 	Eigen::Vector3d m_normal = { 0.0, 0.0, 0.0 };
     Eigen::Vector3d m_shadowPosition = { 0.0, 0.0, 0.0 };
+    
     std::vector<int> m_connectedEdges;
 	double m_curvature = 0.0;
 	double m_thickness = 0.0;

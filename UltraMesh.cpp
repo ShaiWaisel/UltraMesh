@@ -772,7 +772,18 @@ bool Bucket::IntersectWithRay(Eigen::Vector3d& origin, Eigen::Vector3d& directio
 		return true;
 }
 
-void UltraMesh::SaveAsVRML(const std::wstring fileName, const double redYellow, const double yellowGreen)
+void UltraMesh::CalcColors(const double redYellow, const double yellowGreen)
+{
+    int idx = 0;
+    for (auto& face : m_faces)
+    {
+        face.SetColors(m_vertices, redYellow, yellowGreen);    
+        idx++;
+    }
+
+}
+
+void UltraMesh::SaveAsVRML(const std::wstring fileName)
 {
     std::ofstream myfile;
     myfile.open(fileName);
@@ -780,30 +791,31 @@ void UltraMesh::SaveAsVRML(const std::wstring fileName, const double redYellow, 
     myfile << "\tgeometry IndexedFaceSet\n\t{\n";
     myfile << "\t\tcoord Coordinate\n\t\t{\n";
     myfile << "\t\t\tpoint\n\t\t\t[\n";
-    for (auto& vertex : m_vertices)
+    for (auto& face : m_faces)
     {
-        myfile << "\t\t\t" << vertex.m_position[0] << "\t" << vertex.m_position[1] << "\t" << vertex.m_position[2] << "\n";
+        for (int i=0; i<3; i++)
+        myfile << "\t\t\t" << m_vertices[face.m_vertices[i]].m_position[0] << "\t" << 
+            m_vertices[face.m_vertices[i]].m_position[1] << "\t" << 
+            m_vertices[face.m_vertices[i]].m_position[2] << "\n";
     }
     myfile << "\t\t\t]\n\t\t}\n";
     myfile << "\t\tcolorPerVertex TRUE\n";
     myfile << "\t\tcolor Color\n\t\t{\n";
     myfile << "\t\t\tcolor\n\t\t\t[\n";
-    for (auto& vertex : m_vertices)
+    for (auto& face : m_faces)
     {
-        double thickness = vertex.m_thickness * (1-vertex.m_curvature);
-        if (thickness < redYellow)
-            myfile << "\t\t\t" << "1.0\t0.0\t0.0\n";
-        else  if (thickness < yellowGreen)
-            myfile << "\t\t\t" << "1.0\t1.0\t0.0\n";
-        else
-            myfile << "\t\t\t" << "0.0\t1.0\t0.0\n";
-
+        for (int i = 0; i < 3; i++)
+            myfile << "\t\t\t" << face.m_colors[i][0] << "\t" <<
+            face.m_colors[i][1] << "\t" <<
+            face.m_colors[i][2] << "\n";
     }
     myfile << "\t\t\t]\n\t\t}\n";
     myfile << "\t\tcoordIndex\n\t\t[\n";
+    int counter = 0;
     for (auto& face : m_faces)
     {
-        myfile << "\t\t" << face.m_vertices[0] << "\t" << face.m_vertices[1] << "\t" << face.m_vertices[2] << "-1\n";
+        myfile << "\t\t" << counter << "\t" << counter+1 << "\t" << counter+2 << "-1\n";
+        counter += 3;
     }
     myfile << "\t\t]\n\t}\n";
 

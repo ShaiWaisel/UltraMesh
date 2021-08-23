@@ -12,7 +12,7 @@
 
 #define PROMPT(_str) PgWindowText(_str);
 #define JOURNAL_DEBUG 0
-#define MINIMAL_WALL_THICKNESS 16
+#define MINIMAL_WALL_THICKNESS 6
 #define REMESH true
 #define TIME_INTERVAL(end, start) double(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()) / 1000.0
 
@@ -123,7 +123,8 @@ int main(int argc, char* argv[])
     //std::wstring fileName = L"C:\\Parts\\Castor\\Remeshed\\73986 LEVER_curve_sensitive.stl";
     //std::wstring fileName = L"C:\\Parts\\Industrial\\Rocker Cover.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl";
-    std::wstring fileName = L"C:\\Parts\\Castor\\3dcross.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\3dcross.stl";
+    std::wstring fileName = L"C:\\Parts\\Castor\\gauges.stl";
     //std::wstring fileName = L"c:/temp/!hole.stl";
 
 	PTInitialiseOpts initialise_options;
@@ -242,8 +243,9 @@ int main(int argc, char* argv[])
     modelMesh.CalcThickness(ultraMesh);
     auto end = std::chrono::high_resolution_clock::now();
     printf("Completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
-    modelMesh.SaveAsVRML(L"c:/temp/!thickness.wrl", MINIMAL_WALL_THICKNESS / 2 , MINIMAL_WALL_THICKNESS *1.1 / 2);
-    ultraMesh.SaveAsVRML(L"c:/temp/!skeleton.wrl", 0, 0);
+    modelMesh.CalcColors(MINIMAL_WALL_THICKNESS * 0.9 / 2, MINIMAL_WALL_THICKNESS *1.1 / 2);
+    modelMesh.SaveAsVRML(L"c:/temp/!thickness.wrl");
+    ultraMesh.SaveAsVRML(L"c:/temp/!skeleton.wrl");
 
 	modifiedModel = UltraMesh2PTSolid(ultraMesh, env);
 

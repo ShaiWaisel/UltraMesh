@@ -228,6 +228,45 @@ bool UltraFace::MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, Eige
     return isInside;
 }
 
+void UltraFace::SetColors(const std::vector<UltraVertex>& vertices, const double redYellow, const double yellowGreen)
+{
+    double minCurvature = DBL_MAX;
+    int minCurvatureIdx = -1;
+    for (int vIdx = 0; vIdx < 3; vIdx++)
+    {
+        if (abs(vertices[m_vertices[vIdx]].m_curvature) < minCurvature)
+        {
+            minCurvature = vertices[m_vertices[vIdx]].m_curvature;
+            minCurvatureIdx = vIdx;
+        }
+        double thickness = vertices[m_vertices[vIdx]].m_thickness * (1.0 - pow(vertices[m_vertices[vIdx]].m_curvature, 2.0));
+        if (thickness < redYellow)
+        {
+            m_colors[vIdx][0] = 1.0;  m_colors[vIdx][1] = 0.0; m_colors[vIdx][2] = 0.0;
+        }
+        else  if (thickness < yellowGreen)
+        {
+            m_colors[vIdx][0] = 1.0;  m_colors[vIdx][1] = 1.0; m_colors[vIdx][2] = 0.0;
+        }
+        else
+        {
+            m_colors[vIdx][0] = 0.0;  m_colors[vIdx][1] = 1.0; m_colors[vIdx][2] = 0.0;
+        }
+
+    }
+    if (minCurvature < 1.0E-6)
+    {
+        for (int vIdx = 0; vIdx < 3; vIdx++)
+        {
+            if (vIdx == minCurvatureIdx)
+                continue;
+            for (int j = 0; j < 3; j++)
+                m_colors[vIdx][j] = m_colors[minCurvatureIdx][j];
+        }
+    }
+}
+
+
 
 
 

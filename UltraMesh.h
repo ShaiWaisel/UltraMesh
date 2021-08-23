@@ -39,7 +39,8 @@ public:
 	std::vector<UltraFace> IntersectWithRay(Eigen::Vector3d& origin, Eigen::Vector3d& direction);
     void Smooth();
     void OffsetBySkeleton(double maxOffset);
-    void SaveAsVRML(const std::wstring fileName, const double redYellow, const double yellowGreen);
+    void CalcColors(const double redYellow, const double yellowGreen);
+    void SaveAsVRML(const std::wstring fileName);
     void CalcThickness(const UltraMesh& otherMesh);
 
 

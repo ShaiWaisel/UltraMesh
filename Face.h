@@ -37,11 +37,13 @@ public:
     double DistPointPlane(const Eigen::Vector3d& point);
     double ClampDistPoint(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, Eigen::Vector3d& closestPoint);
     bool MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance);
+    void SetColors(const std::vector<UltraVertex>& vertices, const double redYellow, const double yellowGreen);
 
 
 	Eigen::Vector3i m_vertices = { 0, 0, 0 };
 	Eigen::Vector3i m_edges = { 0, 0, 0 };
 	Eigen::Vector4d m_plane = { 0.0, 0.0, 0.0, 0.0 };
+    double m_colors[3][3] = { {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} };
 	double m_area = 0.0;
 	int m_status = FLAG_RESET;
 };
