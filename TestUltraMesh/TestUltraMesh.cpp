@@ -12,7 +12,7 @@
 
 #define PROMPT(_str) PgWindowText(_str);
 #define JOURNAL_DEBUG 0
-#define MINIMAL_WALL_THICKNESS 6
+#define MINIMAL_WALL_THICKNESS 3
 #define REMESH true
 #define TIME_INTERVAL(end, start) double(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()) / 1000.0
 
@@ -34,6 +34,22 @@ PTSolid ReadSTL(PTEnvironment env, std::wstring fileName)
 	PFStreamClose(stream);
 	return model;
 }
+
+void WriteSTL(PTSolid solid, std::wstring fileName)
+{
+    PTStream stream = PV_ENTITY_NULL;
+    PTStatus status = PV_STATUS_OK;
+    std::string sFileName = std::string(fileName.cbegin(), fileName.cend());
+    status = PFStreamFileOpen(PTString(sFileName.c_str()), PV_FILE_WRITE, NULL, &stream);
+
+    PTSolidWriteOpts solidWriteOptions;
+    PMInitSolidWriteOpts(&solidWriteOptions);
+    /* The solid has already been prepared for single-precision output */
+    solidWriteOptions.prepare_for_single_precision = TRUE;
+
+    status = PFSolidWrite(solid, PV_SOLID_DATA_BINARY_STL, stream, &solidWriteOptions);
+     PFStreamClose(stream);
+ }
 
 PTSolid UltraMesh2PTSolid(UltraMesh& mesh, PTEnvironment env)
 {
@@ -124,7 +140,11 @@ int main(int argc, char* argv[])
     //std::wstring fileName = L"C:\\Parts\\Industrial\\Rocker Cover.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\3dcross.stl";
-    std::wstring fileName = L"C:\\Parts\\Castor\\gauges.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\gauges.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\less 6 another.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\less6.stl";
+    std::wstring fileName = L"C:\\Parts\\Castor\\more6 another.stl";
+
     //std::wstring fileName = L"c:/temp/!hole.stl";
 
 	PTInitialiseOpts initialise_options;
@@ -206,12 +226,12 @@ int main(int argc, char* argv[])
         PTSolidRemeshOpts initSolidRemeshOpts;
         PMInitSolidRemeshOpts(&initSolidRemeshOpts);
         initSolidRemeshOpts.keep_sharp_features = TRUE;
-        initSolidRemeshOpts.remesh_limits = PV_REMESH_LIMIT_EDGE_LENGTH;
+        initSolidRemeshOpts.remesh_limits = PV_REMESH_LIMIT_ERROR;
         initSolidRemeshOpts.keep_boundaries = TRUE;
         initSolidRemeshOpts.curvature_sensitive_remeshing = TRUE;
-        initSolidRemeshOpts.max_edge_length = MINIMAL_WALL_THICKNESS ;
-        initSolidRemeshOpts.edge_length = MINIMAL_WALL_THICKNESS;
+        initSolidRemeshOpts.error = 0.1;
         status += PFSolidRemesh(model, &initSolidRemeshOpts);
+        WriteSTL(model, L"c:\\temp\\!meshed.stl");
     }
 	printf("Building mesh..\n");
 	PTSolid2UltraMesh(model, ultraMesh);
@@ -243,7 +263,7 @@ int main(int argc, char* argv[])
     modelMesh.CalcThickness(ultraMesh);
     auto end = std::chrono::high_resolution_clock::now();
     printf("Completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
-    modelMesh.CalcColors(MINIMAL_WALL_THICKNESS * 0.9 / 2, MINIMAL_WALL_THICKNESS *1.1 / 2);
+    modelMesh.CalcColors(MINIMAL_WALL_THICKNESS / 2, MINIMAL_WALL_THICKNESS  / 2);
     modelMesh.SaveAsVRML(L"c:/temp/!thickness.wrl");
     ultraMesh.SaveAsVRML(L"c:/temp/!skeleton.wrl");
 

@@ -554,7 +554,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
 
     // Each bucket is overlapping its neighbors by half of maxDisplacement. This bucketMargin is needed for
     // checking "proposed" vertices positions (m_dispos) that are initially set to maxDisplacement.
-    double bucketMargins = maxOffset * 0.5;
+    double bucketMargins = maxOffset * 1.2;
 
     // Each bucket size "a", excluding margins, is set by dividing the total vertices bounding box by Nbuckets
     double ax = (m_bounds[1] - m_bounds[0]) / Nbuckets;
@@ -633,8 +633,9 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
             // vertex to be displaced
 
             UltraVertex* vertex = &m_vertices[vertexIdx];
-            double maxDist = maxOffset, dist = 0.0;
-            Eigen::Vector3d position = vertex->Position() + direction * vertex->m_normal * abs(vertex->m_curvature) / (1 - abs(vertex->m_curvature));
+            double x = vertex->m_position[0];
+           double maxDist = maxOffset*1.2, dist = 0.0;
+            Eigen::Vector3d position = vertex->Position();// +direction * vertex->m_normal * abs(vertex->m_curvature) / (1 - abs(vertex->m_curvature));
 
             // Provided that vertex will be moved, check for overruling by looping over buckets and iterating on
             // nearby faces.
@@ -691,7 +692,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
                 }
             }
             // Iterations completed, m_limit is set to optimum hence m_dispos is set.
-            vertex->m_shadowPosition = position + direction * vertex->m_normal * maxDist;
+            vertex->m_shadowPosition = position + direction * vertex->m_normal * maxDist * sqrt(1 + vertex->m_curvature);
         }
         printf("\rProcessing...%3.1f%%\n", 100.0);
         // Vertex repositioning completed, updating FlexiVertex internal variables
@@ -774,11 +775,14 @@ bool Bucket::IntersectWithRay(Eigen::Vector3d& origin, Eigen::Vector3d& directio
 
 void UltraMesh::CalcColors(const double redYellow, const double yellowGreen)
 {
-    int idx = 0;
-    for (auto& face : m_faces)
+    for (int repeats = 0; repeats < 1; repeats++)
     {
-        face.SetColors(m_vertices, redYellow, yellowGreen);    
-        idx++;
+        int idx = 0;
+        for (auto& face : m_faces)
+        {
+            face.SetColors(m_vertices, redYellow, yellowGreen);
+            idx++;
+        }
     }
 
 }

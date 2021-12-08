@@ -236,10 +236,10 @@ void UltraFace::SetColors(const std::vector<UltraVertex>& vertices, const double
     {
         if (abs(vertices[m_vertices[vIdx]].m_curvature) < minCurvature)
         {
-            minCurvature = vertices[m_vertices[vIdx]].m_curvature;
+            minCurvature = abs(vertices[m_vertices[vIdx]].m_curvature);
             minCurvatureIdx = vIdx;
         }
-        double thickness = vertices[m_vertices[vIdx]].m_thickness * (1.0 - pow(vertices[m_vertices[vIdx]].m_curvature, 2.0));
+        double thickness = vertices[m_vertices[vIdx]].m_thickness;// *(1.0 - pow(vertices[m_vertices[vIdx]].m_curvature, 2.0));
         if (thickness < redYellow)
         {
             m_colors[vIdx][0] = 1.0;  m_colors[vIdx][1] = 0.0; m_colors[vIdx][2] = 0.0;
@@ -250,11 +250,18 @@ void UltraFace::SetColors(const std::vector<UltraVertex>& vertices, const double
         }
         else
         {
-            m_colors[vIdx][0] = 0.0;  m_colors[vIdx][1] = 1.0; m_colors[vIdx][2] = 0.0;
+            m_colors[vIdx][0] = 0.0;  m_colors[vIdx][1] = 0.4; m_colors[vIdx][2] = 0.0;
         }
 
     }
-    if (minCurvature < 1.0E-6)
+    //int code = 0;
+    //if ((abs(vertices[m_vertices[0]].m_position[0] - 14.666) < 0.01) && (abs(vertices[m_vertices[0]].m_position[2] - 27.436) < 0.01))
+    //    code++;
+    //if ((abs(vertices[m_vertices[1]].m_position[0] - 14.666) < 0.01) && (abs(vertices[m_vertices[1]].m_position[2] - 27.436) < 0.01))
+    //    code++;
+    //if ((abs(vertices[m_vertices[2]].m_position[0] - 14.666) < 0.01) && (abs(vertices[m_vertices[2]].m_position[2] - 27.436) < 0.01))
+    //    code++;
+    if (abs(minCurvature) < 0.51)
     {
         for (int vIdx = 0; vIdx < 3; vIdx++)
         {
