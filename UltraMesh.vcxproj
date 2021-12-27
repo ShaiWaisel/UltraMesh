@@ -170,12 +170,14 @@
     <ClInclude Include="Face.h" />
     <ClInclude Include="UltraMesh.h" />
     <ClInclude Include="UltraMeshExportImport.h" />
+    <ClInclude Include="UltraVoxel.h" />
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Edge.cpp" />
     <ClCompile Include="Face.cpp" />
     <ClCompile Include="UltraMesh.cpp" />
+    <ClCompile Include="UltraVoxel.cpp" />
     <ClCompile Include="Vertex.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

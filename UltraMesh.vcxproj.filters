@@ -33,6 +33,9 @@
     <ClInclude Include="UltraMeshExportImport.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="UltraVoxel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Edge.cpp">
@@ -45,6 +48,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UltraMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UltraVoxel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

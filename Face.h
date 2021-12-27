@@ -2,12 +2,11 @@
 
 #include <set>
 #include <math.h>
-#include "C:/Eigen3.3.7/Eigen/Dense"
+#include "UltraVoxel.h"
 
 #define FLAG_RESET 0
 #define FLAG_MARK 1
 #define FLAG_OBSOLETE 2
-#define _USE_MATH_DEFINES
 
 #include "UltraMeshExportImport.h"
 
@@ -36,7 +35,8 @@ public:
     bool IsPointInside(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, Eigen::Vector3d& projectedPoint);
     double DistPointPlane(const Eigen::Vector3d& point);
     double ClampDistPoint(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, Eigen::Vector3d& closestPoint);
-    bool MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance);
+    bool MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, const Eigen::Vector3d& direction,
+        const double maxDist, double& distance);
     void SetColors(const std::vector<UltraVertex>& vertices, const double redYellow, const double yellowGreen);
 
 

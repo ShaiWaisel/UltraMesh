@@ -6,8 +6,6 @@
 #include "UltraMeshExportImport.h"
 
 
-typedef double Bounds[6];
-#define EPSILON6 1.0E-6
 
 
 class ULTRAMESH_API Bucket

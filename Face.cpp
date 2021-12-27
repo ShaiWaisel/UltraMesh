@@ -181,11 +181,14 @@ double UltraFace::ClampDistPoint(const std::vector<UltraVertex>& vertices, const
     }
 }
 
-bool UltraFace::MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance)
+bool UltraFace::MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, const Eigen::Vector3d& direction, 
+    const double maxDist, double& distance)
 {
 #define MATLAB_DEBUG 0
 
     double dir = m_plane[0] * point[0] + m_plane[1] * point[1] + m_plane[2] * point[2] + m_plane[3];
+    if (abs(dir) > maxDist)
+        return false;
     double K1 = m_plane[0] * direction[0] + m_plane[1] * direction[1] + m_plane[2] * direction[2];
     double K2 = m_plane[0] * point[0] + m_plane[1] * point[1] + m_plane[2] * point[2] + m_plane[3];
     double t = K2 / (1 - K1);

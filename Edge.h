@@ -17,7 +17,8 @@ public:
 	int Vertex(int id) { return (id == 1) ? m_idxV1 : m_idxV2; }
 	double Dihedral() { return m_dihedral; }
     void CalcVector(std::vector<UltraVertex>& vertices);
-    bool MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance);
+    bool MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, const Eigen::Vector3d& direction,  const double maxDist,
+        double& distance);
 
 	int m_idxV1 = -1;
 	int m_idxV2 = -1;

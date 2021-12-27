@@ -12,8 +12,9 @@
 
 #define PROMPT(_str) PgWindowText(_str);
 #define JOURNAL_DEBUG 0
-#define MINIMAL_WALL_THICKNESS 3
-#define REMESH true
+#define MINIMAL_WALL_THICKNESS 5
+#define VOXEL_SIZE 0.5
+#define REMESH false
 #define TIME_INTERVAL(end, start) double(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()) / 1000.0
 
 
@@ -140,12 +141,14 @@ int main(int argc, char* argv[])
     //std::wstring fileName = L"C:\\Parts\\Industrial\\Rocker Cover.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\3dcross.stl";
-    //std::wstring fileName = L"C:\\Parts\\Castor\\gauges.stl";
+    std::wstring fileName = L"C:\\Parts\\Castor\\gauges.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\less 6 another.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\less6.stl";
-    std::wstring fileName = L"C:\\Parts\\Castor\\more6 another.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\more6 another.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\Part24.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\FlachWithTwoHoles.stl";
 
-    //std::wstring fileName = L"c:/temp/!hole.stl";
+    //std::wstring fileName = L"";
 
 	PTInitialiseOpts initialise_options;
 	PTEnvironment env = PV_ENTITY_NULL;
@@ -158,18 +161,24 @@ int main(int argc, char* argv[])
 	PTPoint vp_to = { 0.0, 0.0, 0.0 };
 	PTVector vp_up = { 0.0, 0.0, 1.0 };
 
-	double modelColor[3] = { 0.8, 0.8, 0.0 };
+	double modelColor[3] = { 0.0, 0.0, 0.0 };
 	double modelEdgeColor[3] = { 0.1, 0.1, 0.1 };
-	PTNat32 modelTransparency = 50;
-	bool modelViewEdges = false;
+	PTNat32 modelTransparency = 80;
+	bool modelViewEdges = true;
 	bool modelView = true;
-	double modifiedModelColor[3] = { 0.8, 0.8, 1.0 };
-	double modifiedModelEdgeColor[3] = { 0.1, 0.1, 0.1 };
-	PTNat32 modifiedModelTransparency = 50;
-	bool modifiedModelViewEdges = true;
-	bool modifiedModelView = true;
+	double thinAreascolor[3] = { 1.0, 0.0, 0.0 };
+	double thinAreasedgeColor[3] = { 0.1, 0.1, 0.1 };
+	PTNat32 thinAreastransparency = 0;
+	bool thinAreasViewEdges = false;
+	bool thinAreasview = true;
 
-	double bgBottomColor[3] = { 0.2, 0.4, 0.6 };
+    double thickAreascolor[3] = { 0.0, 0.5, 0.0 };
+    double thickAreasedgeColor[3] = { 0.1, 0.1, 0.1 };
+    PTNat32 thickAreastransparency = 0;
+    bool thickAreasViewEdges = false;
+    bool thickAreasview = true;
+    
+    double bgBottomColor[3] = { 0.2, 0.4, 0.6 };
 	double bgTopColor[3] = { 0.1, 0.2, 0.3 };
 	bool renderEdges = true;
 	PTRenderStyle render_style;
@@ -220,7 +229,19 @@ int main(int argc, char* argv[])
 	PTSolid modifiedModel = PV_ENTITY_NULL;
 
 	UltraMesh ultraMesh = UltraMesh();
-	model = ReadSTL(env, fileName);
+    if (fileName.length() > 0)
+        model = ReadSTL(env, fileName);
+    else
+    {
+        //PFSolidCreateSphere(env, PTPoint{ 0.0, 0.0, 0.0 }, 50.0, 1, NULL, &model);
+        //      PFSolidCreateCylinder(env, PTPoint{ 0.0, 0.0, 0.0 }, PTPoint{ 0.0, 0.0, 100.0 }, 20.0, 5, NULL, &model);
+                PFSolidCreateFromBox(env, PTBounds{ -20.0, 20.0, -20.0, 20.0, -20.0, 20.0, }, NULL, &model);
+        PTTransformMatrix mat;
+        PMInitTransformMatrix(mat);
+//        PFTransformMatrixScale(mat, 1, 0.1, 0.5);
+        PFTransformMatrixRotate(mat, PTPoint{ 0.0, 0.0, 0.0 }, PTVector{ 0.0, 0.0, 1.0 }, 45);
+        PFSolidTransform(model, mat);
+    }
     if (REMESH)
     {
         PTSolidRemeshOpts initSolidRemeshOpts;
@@ -233,41 +254,95 @@ int main(int argc, char* argv[])
         status += PFSolidRemesh(model, &initSolidRemeshOpts);
         WriteSTL(model, L"c:\\temp\\!meshed.stl");
     }
+    auto start = std::chrono::high_resolution_clock::now();
+
 	printf("Building mesh..\n");
 	PTSolid2UltraMesh(model, ultraMesh);
-	ultraMesh.CalcFaces();
-	ultraMesh.MapEdges();
-	ultraMesh.CalcNormals(false);
-    ultraMesh.CalcCurvature();
-	printf("Calculating buckets..\n");
-	ultraMesh.CalcBuckets();
-	int rays = 1;
-	printf("Tracing %d rays...  ", rays);
-	auto start = std::chrono::high_resolution_clock::now();
-	for (int i = 0; i < rays; i++)
-	{
-		Eigen::Vector3d origin = { (rand() / RAND_MAX - 0.5) * 100, 
-			(rand() / RAND_MAX - 0.5) * 100, 
-			(rand() / RAND_MAX - 0.5) * 100 };
-		Eigen::Vector3d direction = { (rand() / RAND_MAX - 0.5) * 2, 
-			 (rand() / RAND_MAX - 0.5) * 2,
-			 (rand() / RAND_MAX - 0.5) * 2 };
-		ultraMesh.IntersectWithRay(origin, direction);
-	}
-    UltraMesh modelMesh = ultraMesh;
-    
-    double halfThickness = MINIMAL_WALL_THICKNESS / 2.0;
+    Bounds* bounds = ultraMesh.CalcBounds() ;
+    VoxelVolume voxels = VoxelVolume(*bounds, VOXEL_SIZE);
+    voxels.CalcBorder(ultraMesh.m_faces, ultraMesh.m_vertices);
+    //std::set<std::array<int, 3>> border = voxels.Border();
+    std::vector< Eigen::Vector3i> ijks;
+    voxels.CalcSecond();
+    bool layerCompleted = true;
+    int layerIdx = 2;
+    int maxLayer = round((double)MINIMAL_WALL_THICKNESS / VOXEL_SIZE) + 1;
+    while (layerCompleted)
+    {
+        layerCompleted = ((layerIdx > maxLayer) || voxels.CalcLayer(layerIdx, layerIdx + 1));
+        layerIdx++;
+    }
+    layerIdx--;
+    voxels.CalcDepth();
+    //voxels.Render(1, ijks);
+    voxels.RenderByDepth(0.0, MINIMAL_WALL_THICKNESS / 2.0, ijks);
+    //std::set<std::array<int, 3>> outside = voxels.Outside();
+    PTSolid thinAreasvoxes = PV_ENTITY_NULL;
+    for (auto& it : ijks)
+    {
+        PTBounds bounds = { it[0], it[0] + 1, it[1], it[1] + 1, it[2], it[2] + 1 };
+        PTSolid brick;
+        PFSolidCreateFromBox(env, bounds, NULL, &brick);
+        if (thinAreasvoxes)
+            PFSolidConcatenate(thinAreasvoxes, brick, TRUE, NULL);
+        else
+            PFSolidCopy(brick, NULL, &thinAreasvoxes);
+    }
+    PTSolid thickAreasvoxes = PV_ENTITY_NULL;
+    //voxels.Render(layerIdx, ijks);
+    voxels.RenderByDepth(MINIMAL_WALL_THICKNESS / 2.0, 999.0, ijks);
+    //voxels.RenderByDepth(998, 999.0, ijks);
+    for (auto& it : ijks)
+    {
+        PTBounds bounds = { it[0], it[0] + 1, it[1], it[1] + 1, it[2], it[2] + 1 };
+        PTSolid brick;
+        PFSolidCreateFromBox(env, bounds, NULL, &brick);
+        if (thickAreasvoxes)
+            PFSolidConcatenate(thickAreasvoxes, brick, TRUE, NULL);
+        else
+            PFSolidCopy(brick, NULL, &thickAreasvoxes);
+    }
+    PTTransformMatrix mat;
+    PMInitTransformMatrix(mat);
+    PTBounds bbx;
+    memcpy(&bbx, bounds, sizeof(Bounds));
+    PFTransformMatrixScale(mat, VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE);
+    PFTransformMatrixTranslate(mat, PTVector{ bbx[0] - VOXEL_SIZE / 2, bbx[2] - VOXEL_SIZE / 2, bbx[4] - VOXEL_SIZE / 2 });
+    PFSolidTransform(thinAreasvoxes, mat);
+    PFSolidTransform(thickAreasvoxes, mat);
 
-    ultraMesh.OffsetBySkeleton(-halfThickness);
-    //ultraMesh.Smooth();
-    modelMesh.CalcThickness(ultraMesh);
+	//ultraMesh.CalcFaces();
+	//ultraMesh.MapEdges();
+	//ultraMesh.CalcNormals(false);
+ //   ultraMesh.CalcCurvature();
+	//printf("Calculating buckets..\n");
+	//ultraMesh.CalcBuckets();
+	//int rays = 1;
+	//printf("Tracing %d rays...  ", rays);
+	//for (int i = 0; i < rays; i++)
+	//{
+	//	Eigen::Vector3d origin = { (rand() / RAND_MAX - 0.5) * 100, 
+	//		(rand() / RAND_MAX - 0.5) * 100, 
+	//		(rand() / RAND_MAX - 0.5) * 100 };
+	//	Eigen::Vector3d direction = { (rand() / RAND_MAX - 0.5) * 2, 
+	//		 (rand() / RAND_MAX - 0.5) * 2,
+	//		 (rand() / RAND_MAX - 0.5) * 2 };
+	//	ultraMesh.IntersectWithRay(origin, direction);
+	//}
+ //   UltraMesh modelMesh = ultraMesh;
+ //   
+ //   double halfThickness = MINIMAL_WALL_THICKNESS / 2.0;
+
+ //   ultraMesh.OffsetBySkeleton(-halfThickness);
+ //   //ultraMesh.Smooth();
+ //   modelMesh.CalcThickness(ultraMesh);
     auto end = std::chrono::high_resolution_clock::now();
     printf("Completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
-    modelMesh.CalcColors(MINIMAL_WALL_THICKNESS / 2, MINIMAL_WALL_THICKNESS  / 2);
-    modelMesh.SaveAsVRML(L"c:/temp/!thickness.wrl");
-    ultraMesh.SaveAsVRML(L"c:/temp/!skeleton.wrl");
+ //   modelMesh.CalcColors(MINIMAL_WALL_THICKNESS / 2, MINIMAL_WALL_THICKNESS  / 2);
+ //   modelMesh.SaveAsVRML(L"c:/temp/!thickness.wrl");
+ //   ultraMesh.SaveAsVRML(L"c:/temp/!skeleton.wrl");
 
-	modifiedModel = UltraMesh2PTSolid(ultraMesh, env);
+	//modifiedModel = UltraMesh2PTSolid(ultraMesh, env);
 
 
 	PTBounds modelBounds;
@@ -275,10 +350,13 @@ int main(int argc, char* argv[])
 	PFEntityGetBoundsProperty(model, PV_SOLID_PROP_BOUNDS, modelBounds);
 
 
-	PTWorldEntity modelEntity, modifiedModelEntity;
+	PTWorldEntity modelEntity, wthinAreas = PV_ENTITY_NULL, wthickAreas = PV_ENTITY_NULL;
 
 	status += PFWorldAddEntity(world, model, &modelEntity);
-	status += PFWorldAddEntity(world, modifiedModel, &modifiedModelEntity);
+    if (thinAreasvoxes)
+        PFWorldAddEntity(world, thinAreasvoxes, &wthinAreas);
+    if (thickAreasvoxes)
+        PFWorldAddEntity(world, thickAreasvoxes, &wthickAreas);
 
 	vp_to[0] = (modelBounds[0] + modelBounds[1]) / 2.0;
 	vp_to[1] = (modelBounds[2] + modelBounds[3]) / 2.0;
@@ -303,17 +381,35 @@ int main(int argc, char* argv[])
 	PFEntitySetBooleanProperty(modelEntity, PV_WENTITY_PROP_VISIBLE, modelView);
 	status += PFRenderStyleDestroy(render_style);
 
-	status += PFRenderStyleCreate(env, &render_style);
-	poly_style = PFEntityGetEntityProperty(render_style, PV_RSTYLE_PROP_POLYGON_STYLE);
-	edge_style = PFEntityGetEntityProperty(render_style, PV_RSTYLE_PROP_EDGE_STYLE);
-	PFEntitySetColourProperty(poly_style, PV_PSTYLE_PROP_COLOUR, PV_COLOUR_DOUBLE_RGB_ARRAY, modifiedModelColor);
-	PFEntitySetNat32Property(poly_style, PV_PSTYLE_PROP_TRANSPARENCY, modifiedModelTransparency);
-	PFEntitySetColourProperty(edge_style, PV_ESTYLE_PROP_COLOUR, PV_COLOUR_DOUBLE_RGB_ARRAY, modifiedModelEdgeColor);
-	PFEntitySetBooleanProperty(render_style, PV_RSTYLE_PROP_RENDER_EDGES, modifiedModelViewEdges);
-	PFEntitySetDoubleProperty(render_style, PV_RSTYLE_PROP_EDGE_ANGLE, 0.0);
-	PFEntitySetEntityProperty(modifiedModelEntity, PV_WENTITY_PROP_STYLE, render_style);
-	PFEntitySetBooleanProperty(modifiedModelEntity, PV_WENTITY_PROP_VISIBLE, modifiedModelView);
-	status += PFRenderStyleDestroy(render_style);
+    if (wthinAreas)
+    {
+        status += PFRenderStyleCreate(env, &render_style);
+        poly_style = PFEntityGetEntityProperty(render_style, PV_RSTYLE_PROP_POLYGON_STYLE);
+        edge_style = PFEntityGetEntityProperty(render_style, PV_RSTYLE_PROP_EDGE_STYLE);
+        PFEntitySetColourProperty(poly_style, PV_PSTYLE_PROP_COLOUR, PV_COLOUR_DOUBLE_RGB_ARRAY, thinAreascolor);
+        PFEntitySetNat32Property(poly_style, PV_PSTYLE_PROP_TRANSPARENCY, thinAreastransparency);
+        PFEntitySetColourProperty(edge_style, PV_ESTYLE_PROP_COLOUR, PV_COLOUR_DOUBLE_RGB_ARRAY, thinAreasedgeColor);
+        PFEntitySetBooleanProperty(render_style, PV_RSTYLE_PROP_RENDER_EDGES, thinAreasViewEdges);
+        PFEntitySetDoubleProperty(render_style, PV_RSTYLE_PROP_EDGE_ANGLE, 0.0);
+        PFEntitySetEntityProperty(wthinAreas, PV_WENTITY_PROP_STYLE, render_style);
+        PFEntitySetBooleanProperty(wthinAreas, PV_WENTITY_PROP_VISIBLE, thinAreasview);
+        status += PFRenderStyleDestroy(render_style);
+    }
+
+    if (wthickAreas)
+    {
+        status += PFRenderStyleCreate(env, &render_style);
+        poly_style = PFEntityGetEntityProperty(render_style, PV_RSTYLE_PROP_POLYGON_STYLE);
+        edge_style = PFEntityGetEntityProperty(render_style, PV_RSTYLE_PROP_EDGE_STYLE);
+        PFEntitySetColourProperty(poly_style, PV_PSTYLE_PROP_COLOUR, PV_COLOUR_DOUBLE_RGB_ARRAY, thickAreascolor);
+        PFEntitySetNat32Property(poly_style, PV_PSTYLE_PROP_TRANSPARENCY, thickAreastransparency);
+        PFEntitySetColourProperty(edge_style, PV_ESTYLE_PROP_COLOUR, PV_COLOUR_DOUBLE_RGB_ARRAY, thickAreasedgeColor);
+        PFEntitySetBooleanProperty(render_style, PV_RSTYLE_PROP_RENDER_EDGES, thickAreasViewEdges);
+        PFEntitySetDoubleProperty(render_style, PV_RSTYLE_PROP_EDGE_ANGLE, 0.0);
+        PFEntitySetEntityProperty(wthickAreas, PV_WENTITY_PROP_STYLE, render_style);
+        PFEntitySetBooleanProperty(wthickAreas, PV_WENTITY_PROP_VISIBLE, thickAreasview);
+        status += PFRenderStyleDestroy(render_style);
+    }
 
 
 

@@ -545,7 +545,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
     // A simple performance booster mechanism - divide all faces into 3D array of containers
     // ("buckets") for more efficient search. 
     // Nbuckets size is set by thumb rule as the fourth root of the number of vertices.
-    int Nbuckets = std::max(2, int(sqrt(sqrt(m_vertices.size()))));
+    int Nbuckets = std::max(2, int(sqrt(sqrt(m_vertices.size())))) * 2;
     printf("Number of buckets: %d\n", Nbuckets);
 
     // The buckets array (Nbuckets*Nbuckets*Nbuckets) is arranged as a vector. 
@@ -635,6 +635,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
             UltraVertex* vertex = &m_vertices[vertexIdx];
             double x = vertex->m_position[0];
            double maxDist = maxOffset*1.2, dist = 0.0;
+           double maxDist2 = 2.0 * maxDist;
             Eigen::Vector3d position = vertex->Position();// +direction * vertex->m_normal * abs(vertex->m_curvature) / (1 - abs(vertex->m_curvature));
 
             // Provided that vertex will be moved, check for overruling by looping over buckets and iterating on
@@ -664,7 +665,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
                         bucketIt++;
                         continue;
                     }
-                    if (face->MaxDistToSkeleton(m_vertices, position, vertex->m_normal * direction, dist))
+                    if (face->MaxDistToSkeleton(m_vertices, position, vertex->m_normal * direction, maxDist2, dist))
                     {
                         maxDist = std::min(maxDist, dist);
                     }
@@ -673,7 +674,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
                         for (int edgeIdx = 0; edgeIdx < 3; edgeIdx++)
                         {
                             UltraEdge* edge = &m_edges[face->m_edges[edgeIdx]];
-                            if(edge->MaxDistToSkeleton(m_vertices, position, vertex->m_normal * direction, dist))
+                            if(edge->MaxDistToSkeleton(m_vertices, position, vertex->m_normal * direction, maxDist2, dist))
                             {
                                 maxDist = std::min(maxDist, dist);
                             }
@@ -692,7 +693,11 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
                 }
             }
             // Iterations completed, m_limit is set to optimum hence m_dispos is set.
-            vertex->m_shadowPosition = position + direction * vertex->m_normal * maxDist * sqrt(1 + vertex->m_curvature);
+            vertex->m_shadowPosition = position + direction * vertex->m_normal * maxDist;// *sqrt(1 + vertex->m_curvature);
+            if (isnan(vertex->m_shadowPosition[0]))
+            {
+                printf("NaN detected vertex %d \n", vertexIdx);
+            }
         }
         printf("\rProcessing...%3.1f%%\n", 100.0);
         // Vertex repositioning completed, updating FlexiVertex internal variables

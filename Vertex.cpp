@@ -38,7 +38,7 @@ void UltraVertex::CalcNormal(std::vector<UltraFace>& faces, std::vector<UltraEdg
         {
             auto edge2 = edges[*edgeJ];						// Touching face
             Eigen::Vector3d norm2 = faces[edge2.m_idxFace].Normal();
-            unique &= (norm.dot(norm2) < 0.999);
+            unique &= (norm.dot(norm2) < 0.99999);
         }
         if (byArea)
             norm *= faces[edge.m_idxFace].m_area;					// Normal is weighted by each touching face area
@@ -67,7 +67,6 @@ void UltraVertex::CalcCurvature(std::vector<UltraFace>& faces, std::vector<Ultra
         double ang = acos(v1.dot(v2));
         if (!isnan(ang))
         {
-            double ang = acos(v1.dot(v2));                                                           // Calculate ang diff between two touching faces
             sumAngDiffs += ang;                                                                                    // Accumulate angles between touching faces
             v2 = edge->m_vector;
             v2.normalize();
@@ -78,7 +77,7 @@ void UltraVertex::CalcCurvature(std::vector<UltraFace>& faces, std::vector<Ultra
     // sumAngDiffs can vary from 0.0 (all faces lay on the same plane) to ~2*PI (for very sharp cone tip)
     // sumDotSpokes is used for it's sign whether convex or concave
     if (sumDotSpokes != 0.0)
-        m_curvature = -sumAngDiffs * 0.5 / M_PI * sumDotSpokes / abs(sumDotSpokes);
+         m_curvature = std::max(-1.0, std::min(1.0, -sumAngDiffs * 0.5 / M_PI * sumDotSpokes / abs(sumDotSpokes)));
 }
 
 bool UltraVertex::MaxDistToSkeleton(Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance)

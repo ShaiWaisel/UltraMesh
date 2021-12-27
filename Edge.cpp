@@ -13,11 +13,16 @@ void UltraEdge::CalcVector(std::vector<UltraVertex>& vertices)
 }
 
 
-bool UltraEdge::MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, Eigen::Vector3d point, const Eigen::Vector3d& direction, double& distance)
+bool UltraEdge::MaxDistToSkeleton(const std::vector<UltraVertex>& vertices, const Eigen::Vector3d& point, const Eigen::Vector3d& direction,
+    const double maxDist, double& distance)
 {
  #define MATLAB_DEBUG 0
     Eigen::Vector3d edgeP1 = vertices[m_idxV1].m_position;
     Eigen::Vector3d edgeP2 = vertices[m_idxV2].m_position;
+    if ((edgeP1 - point).norm() > maxDist)
+        return false;
+    if ((edgeP2 - point).norm() > maxDist)
+        return false;
     double edgeLength = (edgeP2 - edgeP1).norm();
     Eigen::Vector3d K = { edgeP2[1]*edgeP1[2] - edgeP1[1]*edgeP1[2] - edgeP2[2]*edgeP1[1] + edgeP1[2]*edgeP1[1],
         edgeP2[2]*edgeP1[0] - edgeP1[2]*edgeP1[0] - edgeP2[0]*edgeP1[2] + edgeP1[0]*edgeP1[2],
