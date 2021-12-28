@@ -360,7 +360,7 @@ void VoxelVolume::SetDepth(Eigen::Vector3i ijk)
             }
         }
 
-        /*
+       
         if (canLeftFrontBottom)
         {
             nextCost = m_voxels[nextVoxel[0] - 1][nextVoxel[1] - 1][nextVoxel[2] - 1].cost;
@@ -477,7 +477,91 @@ void VoxelVolume::SetDepth(Eigen::Vector3i ijk)
                 continue;
             }
         }
-*/
+        if (canRightBottom)
+        {
+            nextCost = m_voxels[nextVoxel[0] - 1][nextVoxel[1]][nextVoxel[2] - 1].cost;
+            if (nextCost > currentCost)
+            {
+                currentCost = nextCost;
+                progress = true;
+                nextVoxel[0]++;
+                nextVoxel[2]--;
+                continue;
+            }
+        }
+        if (canFrontBottom)
+        {
+            nextCost = m_voxels[nextVoxel[0]][nextVoxel[1] - 1][nextVoxel[2] - 1].cost;
+            if (nextCost > currentCost)
+            {
+                currentCost = nextCost;
+                progress = true;
+                nextVoxel[1]--;
+                nextVoxel[2]--;
+                continue;
+            }
+        }
+        if (canBackBottom)
+        {
+            nextCost = m_voxels[nextVoxel[0]][nextVoxel[1] + 1][nextVoxel[2] - 1].cost;
+            if (nextCost > currentCost)
+            {
+                currentCost = nextCost;
+                progress = true;
+                nextVoxel[1]++;
+                nextVoxel[2]--;
+                continue;
+            }
+        }
+
+        if (canLeftTop)
+        {
+            nextCost = m_voxels[nextVoxel[0] - 1][nextVoxel[1]][nextVoxel[2] + 1].cost;
+            if (nextCost > currentCost)
+            {
+                currentCost = nextCost;
+                progress = true;
+                nextVoxel[0]--;
+                nextVoxel[2]++;
+                continue;
+            }
+        }
+        if (canRightTop)
+        {
+            nextCost = m_voxels[nextVoxel[0] - 1][nextVoxel[1]][nextVoxel[2] + 1].cost;
+            if (nextCost > currentCost)
+            {
+                currentCost = nextCost;
+                progress = true;
+                nextVoxel[0]++;
+                nextVoxel[2]++;
+                continue;
+            }
+        }
+        if (canFrontTop)
+        {
+            nextCost = m_voxels[nextVoxel[0]][nextVoxel[1] - 1][nextVoxel[2] + 1].cost;
+            if (nextCost > currentCost)
+            {
+                currentCost = nextCost;
+                progress = true;
+                nextVoxel[1]--;
+                nextVoxel[2]++;
+                continue;
+            }
+        }
+        if (canBackTop)
+        {
+            nextCost = m_voxels[nextVoxel[0]][nextVoxel[1] + 1][nextVoxel[2] + 1].cost;
+            if (nextCost > currentCost)
+            {
+                currentCost = nextCost;
+                progress = true;
+                nextVoxel[1]++;
+                nextVoxel[2]++;
+                continue;
+            }
+        }
     }   while (progress);
     Eigen::Vector3d source, destination;
     IJK2XYZ(ijk, source);
@@ -569,7 +653,7 @@ bool VoxelVolume::HasNeighbor(const int i, const int j, const int k, const int c
         return true;
     if ((k < m_size[2] - 1) && (m_voxels[i][j][k + 1].cost == cost))
         return true;
-/*
+
     if ((i > 0) && (j > 0) && (k > 0) && (m_voxels[i - 1][j - 1][k - 1].cost == cost))
         return true;
     if ((i < m_size[0] - 1) && (j > 0) && (k > 0) && (m_voxels[i + 1][j - 1][k - 1].cost == cost))
@@ -586,7 +670,24 @@ bool VoxelVolume::HasNeighbor(const int i, const int j, const int k, const int c
         return true;
     if ((i < m_size[0] - 1) && (j < m_size[1] - 1) && (k < m_size[2] - 1) && (m_voxels[i + 1][j + 1][k + 1].cost == cost))
         return true;
-  */
+ 
+    if ((i > 0) && (k > 0) && (m_voxels[i - 1][j][k - 1].cost == cost))
+        return true;
+    if ((i < m_size[0] - 1) && (k > 0) && (m_voxels[i + 1][j][k - 1].cost == cost))
+        return true;
+    if ((j > 0) && (k > 0) && (m_voxels[i][j - 1][k - 1].cost == cost))
+        return true;
+    if ((j < m_size[1] - 1) && (k > 0) && (m_voxels[i][j + 1][k - 1].cost == cost))
+        return true;
+    if ((i > 0) && (k < m_size[2] - 1) && (m_voxels[i - 1][j][k + 1].cost == cost))
+        return true;
+    if ((i < m_size[0] - 1) && (k < m_size[2] - 1) && (m_voxels[i + 1][j][k + 1].cost == cost))
+        return true;
+    if ((j > 0) && (k < m_size[2] - 1) && (m_voxels[i][j - 1][k + 1].cost == cost))
+        return true;
+    if ((j < m_size[1] - 1) && (k < m_size[2] - 1) && (m_voxels[i][j + 1][k + 1].cost == cost))
+        return true;
+
     return false;
 }
 

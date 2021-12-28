@@ -12,8 +12,8 @@
 
 #define PROMPT(_str) PgWindowText(_str);
 #define JOURNAL_DEBUG 0
-#define MINIMAL_WALL_THICKNESS 5
-#define VOXEL_SIZE 0.5
+#define MINIMAL_WALL_THICKNESS 2
+#define VOXEL_SIZE 0.25
 #define REMESH false
 #define TIME_INTERVAL(end, start) double(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()) / 1000.0
 
@@ -138,10 +138,10 @@ int main(int argc, char* argv[])
 	//std::wstring fileName = L"c:\\parts\\castor\\Spiral_20480.stl";
     //std::wstring fileName = L"c:\\parts\\industrial\\bracket.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\Remeshed\\73986 LEVER_curve_sensitive.stl";
-    //std::wstring fileName = L"C:\\Parts\\Industrial\\Rocker Cover.stl";
+    std::wstring fileName = L"C:\\Parts\\Industrial\\Rocker Cover.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\3dcross.stl";
-    std::wstring fileName = L"C:\\Parts\\Castor\\gauges.stl";
+    //std::wstring fileName = L"C:\\Parts\\Castor\\gauges.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\less 6 another.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\less6.stl";
     //std::wstring fileName = L"C:\\Parts\\Castor\\more6 another.stl";
@@ -352,7 +352,7 @@ int main(int argc, char* argv[])
 
 	PTWorldEntity modelEntity, wthinAreas = PV_ENTITY_NULL, wthickAreas = PV_ENTITY_NULL;
 
-	status += PFWorldAddEntity(world, model, &modelEntity);
+	//status += PFWorldAddEntity(world, model, &modelEntity);
     if (thinAreasvoxes)
         PFWorldAddEntity(world, thinAreasvoxes, &wthinAreas);
     if (thickAreasvoxes)
