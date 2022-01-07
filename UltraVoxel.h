@@ -8,21 +8,23 @@
 typedef double Bounds[6];
 
 #define EPSILON6 1.0E-6
+#define VOXEL_FLAG_EMPTY 0
+#define VOXEL_FLAG_THIN 1
+#define VOXEL_FLAG_THICK 2
+#define VOXEL_FLAG_TRANSIENT 4
+
+
 
 
 class UltraFace;
 class UltraVertex;
 
-class Voxel
+struct Voxel
 {
-public:
-    Voxel();
-    ~Voxel();
     long int ancestor = 0;
-    int cost = 0;
+    int layer = 0;
     double depth = 0.0;
-
-private:
+    char flag = 0;
 
 };
 
@@ -34,13 +36,15 @@ class ULTRAMESH_API VoxelVolume
 public:
     VoxelVolume(const Bounds& bounds, const double resolution);
     ~VoxelVolume();
-    void CalcBorder(const std::vector<UltraFace>& faces, const std::vector<UltraVertex>& vertices);
-    void CalcSecond();
-    bool CalcLayer(const int neighbourLayer, const int newLayer);
+    void CalcSurfaceLayer(const std::vector<UltraFace>& faces, const std::vector<UltraVertex>& vertices);
+    int CalcSecond(bool diagonal);
+    int CalcLayer(const int neighbourLayer, const int newLayer, bool diagonal);
     void CalcOutside();
-    void CalcDepth();
+    void CalcDepth(bool diagonal);
     void Render(const int cost, std::vector< Eigen::Vector3i>& ijks);
-    void RenderByDepth(const double fromDepth, const double toDepth, std::vector< Eigen::Vector3i>& ijks);
+    void ClassifyByDepth(const double fromDepth, const double toDepth, char flag);
+    void RenderByFlag(char flag, std::vector< Eigen::Vector3i>& ijks);
+    void AdjustNeighboringFlags();
     std::set<std::array<int, 3>> Border() { return m_border; }
     std::set<std::array<int, 3>> Outside() { return m_outside; }
 
@@ -51,10 +55,14 @@ private:
         const int faceIdx);
     void DrawTrig(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2, const Eigen::Vector3d& p3, const int cost,
         const int faceIdx);
-    void SetDepth(Eigen::Vector3i ijk);
-    void FloodFill(const const Eigen::Vector3i& seed, const int& fromValue, const int& toValue, int depth);
+    void SetDepth(Eigen::Vector3i ijk, bool diagonal);
+    void FloodFill(const const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
+    void FloodFillRays(const const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
     bool FindSeed(const int seedValue, const int neighborValue, Eigen::Vector3i& ijk);
-    bool HasNeighbor(const int i, const int j, const int k, const int cost);
+    bool HasNeighbor(const int& i, const int& j, const int& k, const int& layer, bool diagonal);
+    bool HasNeighbor(const int& i, const int& j, const int& k, const char& flags, bool diagonal);
+    bool FindLayer(const int& fromI, const int& fromJ, const int& fromK, const int dirI, const int dirJ, const int dirK, const int targetLayer);
+    bool GetNeighborByFlag(const int& fromI, const int& fromJ, const int& fromK, const char flag, int& dx, int& dy, int&dz);
     double m_brickSize = 0;
     Bounds m_bounds = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     Eigen::Vector3i m_size = { 0, 0, 0 };
