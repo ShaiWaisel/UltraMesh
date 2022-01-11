@@ -53,7 +53,11 @@ private:
     void IJK2XYZ(const Eigen::Vector3i& ijk, Eigen::Vector3d& xyz);
     void DrawLine(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2, const int cost,
         const int faceIdx);
+    void DrawLine(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, const int cost,
+        const int faceIdx);
     void DrawTrig(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2, const Eigen::Vector3d& p3, const int cost,
+        const int faceIdx);
+    void DrawTrig(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, const Eigen::Vector3i& p3, const int cost,
         const int faceIdx);
     void SetDepth(Eigen::Vector3i ijk, bool diagonal);
     void FloodFill(const const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
@@ -62,7 +66,6 @@ private:
     bool HasNeighbor(const int& i, const int& j, const int& k, const int& layer, bool diagonal);
     bool HasNeighbor(const int& i, const int& j, const int& k, const char& flags, bool diagonal);
     bool FindLayer(const int& fromI, const int& fromJ, const int& fromK, const int dirI, const int dirJ, const int dirK, const int targetLayer);
-    bool GetNeighborByFlag(const int& fromI, const int& fromJ, const int& fromK, const char flag, int& dx, int& dy, int&dz);
     double m_brickSize = 0;
     Bounds m_bounds = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     Eigen::Vector3i m_size = { 0, 0, 0 };
@@ -70,7 +73,6 @@ private:
     std::vector<std::vector<std::vector<Voxel>>> m_voxels;
     std::set<std::array<int,3>> m_border;
     std::vector<Eigen::Vector3d> m_faceNormals;
-    std::vector<Eigen::Vector3d> m_faceCenters;
     std::set<std::array<int, 3>> m_outside;
 
 };

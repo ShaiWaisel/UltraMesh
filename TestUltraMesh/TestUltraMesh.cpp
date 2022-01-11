@@ -245,9 +245,9 @@ int main(int argc, char* argv[])
         model = ReadSTL(env, fileName);
     else
     {
-        //PFSolidCreateSphere(env, PTPoint{ 0.0, 0.0, 0.0 }, 50.0, 1, NULL, &model);
+        PFSolidCreateSphere(env, PTPoint{ 0.0, 0.0, 0.0 }, 50.0, 5, NULL, &model);
         //      PFSolidCreateCylinder(env, PTPoint{ 0.0, 0.0, 0.0 }, PTPoint{ 0.0, 0.0, 100.0 }, 20.0, 5, NULL, &model);
-                PFSolidCreateFromBox(env, PTBounds{ -20.0, 20.0, -20.0, 20.0, -20.0, 20.0, }, NULL, &model);
+        //        PFSolidCreateFromBox(env, PTBounds{ -20.0, 20.0, -20.0, 20.0, -20.0, 20.0, }, NULL, &model);
      }
     PTTransformMatrix mat;
     PMInitTransformMatrix(mat);
@@ -279,10 +279,10 @@ int main(int argc, char* argv[])
     printf("\nSurface Layer... voxels: %d\n", border.size());
     //voxels.CalcOutside();
 
+    int n = 0;
     printf("Calc Layer #2...");
-    int n = voxels.CalcSecond(false);
+    n = voxels.CalcSecond(false);
     printf(" voxels: %d\n", n);
-
     // loop over layers 2..maxLayer
     bool layerCompleted = false;
     int layerIdx = 2;

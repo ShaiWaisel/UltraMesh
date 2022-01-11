@@ -84,6 +84,53 @@ void VoxelVolume::DrawLine(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2,
     }
 }
 
+void VoxelVolume::DrawLine(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, const int cost, const int faceIdx)
+{
+    int dx = abs(p1[0] - p2[0]), dy = abs(p1[1] - p2[1]), dz = abs(p1[2] - p2[2]);
+    Eigen::Vector3i ip;
+    int iDir = 0;
+    if ((dx >= dy) && (dx >= dz))
+    {                              // Main axis X
+        iDir = (p2[0] >= p1[0]) ? 1 : -1;
+        for (int iX = p1[0]; iX * iDir <= p2[0] * iDir; iX+= iDir)
+        {
+            double factor = (p1[0] == p2[0]) ? 1.0 : (double)(iX - p1[0]) / (p2[0] - p1[0]);
+            ip << iX, p1[1] + factor * (p2[1] - p1[1]), p1[2] + factor * (p2[2] - p1[2]);
+            m_voxels[ip[0]][ip[1]][ip[2]].layer = cost;
+            m_voxels[ip[0]][ip[1]][ip[2]].ancestor = faceIdx;
+            m_border.insert({ ip[0], ip[1], ip[2] });
+        }
+    }
+    else 
+        if ((dy >= dx) && (dy >= dz))
+        {                      // Main axis Y
+            iDir = (p2[1] >= p1[1]) ? 1 : -1;
+            for (int iY = p1[1]; iY * iDir <= p2[1] * iDir; iY+= iDir)
+            {
+                double factor = (p1[1] == p2[1]) ? 1.0 : (double)(iY - p1[1]) / (p2[1] - p1[1]);
+                ip << p1[0] + factor * (p2[0] - p1[0]), iY, p1[2] + factor * (p2[2] - p1[2]);
+                m_voxels[ip[0]][ip[1]][ip[2]].layer = cost;
+                m_voxels[ip[0]][ip[1]][ip[2]].ancestor = faceIdx;
+                m_border.insert({ ip[0], ip[1], ip[2] });
+            }
+        }
+        else
+        {                      // Main axis Z
+            iDir = (p2[2] >= p1[2]) ? 1 : -1;
+
+            for (int iZ = p1[2]; iZ * iDir <= p2[2] * iDir; iZ += iDir)
+            {
+                double factor = (p1[2] == p2[2]) ? 1.0 : (double)(iZ - p1[2]) / (p2[2] - p1[2]);
+                ip << p1[0] + factor * (p2[0] - p1[0]), p1[1] + factor * (p2[1] - p1[1]), iZ;
+                m_voxels[ip[0]][ip[1]][ip[2]].layer = cost;
+                m_voxels[ip[0]][ip[1]][ip[2]].ancestor = faceIdx;
+                m_border.insert({ ip[0], ip[1], ip[2] });
+            }
+        }
+
+ }
+
+
 void VoxelVolume::DrawTrig(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2, const Eigen::Vector3d& p3, const int cost,
     const int faceIdx)
 {
@@ -121,15 +168,124 @@ void VoxelVolume::DrawTrig(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2,
     Eigen::Vector3d normal = (pB - pA).cross(pC - pA);
     normal.normalize();
     Eigen::Vector3d center = (pA + pB + pC) / 3.0;
-    m_faceCenters.push_back(center);
     m_faceNormals.push_back(normal);
  }
+
+void VoxelVolume::DrawTrig(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, const Eigen::Vector3i& p3, const int cost,
+    const int faceIdx)
+{
+    const int len1 = (p2 - p1).norm();
+    const int len2 = (p3 - p2).norm();
+    const int len3 = (p1 - p3).norm();
+    Eigen::Vector3i pA, pB, pC;
+    if ((len1 >= len2) && (len1 >= len3))
+    {
+        pA = p1;
+        pB = p2;
+        pC = p3;
+    }
+    else   if ((len2 >= len1) && (len2 >= len3))
+    {
+        pA = p2;
+        pB = p3;
+        pC = p1;
+    }
+    else
+    {
+        pA = p3;
+        pB = p1;
+        pC = p2;
+    }
+
+    int dx = abs(pA[0] - pB[0]), dy = abs(pA[1] - pB[1]), dz = abs(pA[2] - pB[2]);
+    Eigen::Vector3i pAB, pACB;
+    int iDir = 0;
+    if ((dx >= dy) && (dx >= dz))
+    {
+        // slice along X
+        iDir = (pB[0] >= pA[0]) ? 1 : -1;
+         for (int iX = pA[0]; iX * iDir <= pB[0] * iDir; iX += iDir)
+         {
+             double factorAB = (pB[0] == pA[0]) ? 1.0 : (double)(iX - pA[0]) / (pB[0] - pA[0]);
+             double factorACB = 0.0;
+            pAB << iX, pA[1] + factorAB * (pB[1] - pA[1]), pA[2] + factorAB * (pB[2] - pA[2]);
+            if (iX*iDir <= pC[0]*iDir)
+            {
+                factorACB = (pC[0] == pA[0]) ? 1.0 : (double)(iX - pA[0]) / (pC[0] - pA[0]);
+                pACB << iX, pA[1] + factorACB * (pC[1] - pA[1]), pA[2] + factorACB * (pC[2] - pA[2]);
+            }
+            else
+            {
+                factorACB = (pB[0] == pC[0]) ? 1.0 : (double)(iX - pC[0]) / (pB[0] - pC[0]);
+                pACB << iX, pC[1] + factorACB * (pB[1] - pC[1]), pC[2] + factorACB * (pB[2] - pC[2]);
+            }
+            DrawLine(pAB, pACB, cost, faceIdx);
+        }
+
+    }
+    else if ((dy >= dx) && (dy >= dz))
+    {
+        // slice along Y
+        iDir = (pB[1] >= pA[1]) ? 1 : -1;
+        for (int iY = pA[1]; iY * iDir <= pB[1] * iDir; iY += iDir)
+        {
+            double factorAB = (pB[1] == pA[1]) ? 1.0 : (double)(iY - pA[1]) / (pB[1] - pA[1]);
+            double factorACB = 0.0;
+            pAB << pA[0] + factorAB * (pB[0] - pA[0]), iY, pA[2] + factorAB * (pB[2] - pA[2]);
+            if (iY*iDir <= pC[1]*iDir)
+            {
+                factorACB = (pC[1] == pA[1]) ? 1.0 : (double)(iY - pA[1]) / (pC[1] - pA[1]);
+                pACB << pA[0] + factorACB * (pC[0] - pA[0]), iY, pA[2] + factorACB * (pC[2] - pA[2]);
+            }
+            else
+            {
+                factorACB = (pB[1] == pC[1]) ? 1.0 : (double)(iY - pC[1]) / (pB[1] - pC[1]);
+                pACB << pC[0] + factorACB * (pB[0] - pC[0]), iY, pC[2] + factorACB * (pB[2] - pC[2]);
+            }
+            DrawLine(pAB, pACB, cost, faceIdx);
+        }
+
+    }   
+    else
+    {
+        // slice along Z
+        iDir = (pB[2] >= pA[2]) ? 1 : -1;
+        for (int iZ = pA[2]; iZ * iDir <= pB[2] * iDir; iZ+= iDir)
+        {
+            double factorAB = (pB[2] == pA[2]) ? 1.0 : (double)(iZ - pA[2]) / (pB[2] - pA[2]);
+            double factorACB = 0.0;
+            pAB << pA[0] + factorAB * (pB[0] - pA[0]), pA[1] + factorAB * (pB[1] - pA[1]), iZ;
+            if (iZ*iDir <= pC[2] * iDir)
+            {
+                factorACB = (pC[2] == pA[2]) ? 1.0 : (double)(iZ - pA[2]) / (pC[2] - pA[2]);
+                pACB << pA[0] + factorACB * (pC[0] - pA[0]), pA[1] + factorACB * (pC[1] - pA[1]), iZ;
+            }
+            else
+            {
+                factorACB = (pB[2] == pC[2]) ? 1.0 : (double)(iZ - pC[2]) / (pB[2] - pC[2]);
+                pACB << pC[0] + factorACB * (pB[0] - pC[0]), pC[1] + factorACB * (pB[1] - pC[1]), iZ;
+            }
+            DrawLine(pAB, pACB, cost, faceIdx);
+        }
+
+    }
+
+
+
+}
+
 
 
 void VoxelVolume::CalcSurfaceLayer(const std::vector<UltraFace>& faces, const std::vector<UltraVertex>& vertices)
 {
     for (int iFace = 0; iFace < faces.size(); iFace++)
     {
+        //Eigen::Vector3i p1, p2, p3;
+        //XYZ2IJK(vertices[faces[iFace].m_vertices[0]].m_position, p1);
+        //XYZ2IJK(vertices[faces[iFace].m_vertices[1]].m_position, p2);
+        //XYZ2IJK(vertices[faces[iFace].m_vertices[2]].m_position, p3);
+        //DrawTrig(p1, p2, p3, 1, iFace);
+
         DrawTrig(vertices[faces[iFace].m_vertices[0]].m_position,
             vertices[faces[iFace].m_vertices[1]].m_position,
             vertices[faces[iFace].m_vertices[2]].m_position, 1, iFace);
@@ -228,7 +384,7 @@ int VoxelVolume::CalcSecond(bool diagonal)
   
                 }
             }
- 
+  
     for (int i = 0; i < m_size[0]; i++)
         for (int j = 0; j < m_size[1]; j++)
             for (int k = 0; k < m_size[2]; k++)
@@ -903,11 +1059,6 @@ bool VoxelVolume::FindLayer(const int& fromI, const int& fromJ, const int& fromK
 }
 
 
-bool VoxelVolume::GetNeighborByFlag(const int& fromI, const int& fromJ, const int& fromK, const char flag, int& dx, int& dy, int&dz)
-{
-    return true;
-}
-
 
 void VoxelVolume::AdjustNeighboringFlags()
 {
@@ -920,45 +1071,6 @@ void VoxelVolume::AdjustNeighboringFlags()
                 {
                       if (HasNeighbor(i,j,k,flags, true))
                           m_voxels[i][j][k].flag = VOXEL_FLAG_TRANSIENT + 100;
-/*
-                      continue;
-                      //        if (i > 0)
-                        if ((m_voxels[i - 1][j][k].flag == VOXEL_FLAG_THICK) || (m_voxels[i - 1][j][k].flag == VOXEL_FLAG_TRANSIENT))
-                        {
-                            m_voxels[i][j][k].flag = VOXEL_FLAG_TRANSIENT + 100;
-                            continue;
-                        }
-            //        if (i < m_size[0] - 1)
-                        if ((m_voxels[i + 1][j][k].flag == VOXEL_FLAG_THICK) || (m_voxels[i + 1][j][k].flag == VOXEL_FLAG_TRANSIENT))
-                        {
-                            m_voxels[i][j][k].flag = VOXEL_FLAG_TRANSIENT + 100;
-                            continue;
-                        }
-            //        if (j > 0)
-                        if ((m_voxels[i][j - 1][k].flag == VOXEL_FLAG_THICK) || (m_voxels[i][j - 1][k].flag == VOXEL_FLAG_TRANSIENT))
-                        {
-                            m_voxels[i][j][k].flag = VOXEL_FLAG_TRANSIENT + 100;
-                            continue;
-                        }
-            //        if (j < m_size[1] - 1)
-                        if ((m_voxels[i][j + 1][k].flag == VOXEL_FLAG_THICK) || (m_voxels[i][j + 1][k].flag == VOXEL_FLAG_TRANSIENT))
-                        {
-                            m_voxels[i][j][k].flag = VOXEL_FLAG_TRANSIENT + 100;
-                            continue;
-                        }
-            //        if (k > 0)
-                        if ((m_voxels[i][j][k - 1].flag == VOXEL_FLAG_THICK) || (m_voxels[i][j][k - 1].flag == VOXEL_FLAG_TRANSIENT))
-                        {
-                            m_voxels[i][j][k].flag = VOXEL_FLAG_TRANSIENT + 100;
-                            continue;
-                        }
-             //       if (k < m_size[2] - 1)
-                        if ((m_voxels[i][j][k + 1].flag == VOXEL_FLAG_THICK) || (m_voxels[i][j][k + 1].flag == VOXEL_FLAG_TRANSIENT))
-                        {
-                            m_voxels[i][j][k].flag = VOXEL_FLAG_TRANSIENT + 100;
-                            continue;
-                        }
-                       */
                 }
             }
     for (int i = 1; i <= m_size[0] ; i++)
