@@ -1,4 +1,4 @@
-#include "UltraMesh.h"
+#include "../../UltraMesh/include/UltraMesh.h"
 #include <iostream>
 #include <fstream>
 
@@ -146,7 +146,7 @@ void UltraMesh::CalcCurvature()
         vertex.CalcCurvature(m_faces, m_edges, m_vertices);
 }
 
-Bounds* UltraMesh::CalcBounds()
+ULTRAMESH_API Bounds* UltraMesh::CalcBounds()
 {
 	for (int i = 0; i < 6; i++)
 		m_bounds[i] = (i % 2 == 0) ? DBL_MAX : -DBL_MAX;

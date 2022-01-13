@@ -1,11 +1,11 @@
 // TestUltraMesh.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include "pch.h"
+//#include "pch.h"
 #include <iostream>
 #include <chrono>
-#include "../UltraMesh.h"
-#include "../window.h"
+#include "../UltraMesh/include/UltraMesh.h"
+#include "../UltraMesh/window.h"
 #include "pg/pgrender.h"
 #include "C:/Eigen3.3.7/Eigen/Dense"
 
@@ -20,12 +20,12 @@
 #define TIME_INTERVAL(end, start) double(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()) / 1000.0
 
 //#define FILE_NAME  L"c:\\parts\\castor\\Spiral_20480.stl"
-#define FILE_NAME  L"c:\\parts\\industrial\\bracket.stl"
+//#define FILE_NAME  L"c:\\parts\\industrial\\bracket.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Remeshed\\73986 LEVER_curve_sensitive.stl"
 //#define FILE_NAME  L"C:\\Parts\\Industrial\\Rocker Cover.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\3dcross.stl"
-//#define FILE_NAME  L"C:\\Parts\\Castor\\gauges.stl"
+#define FILE_NAME  L"C:\\Parts\\Castor\\gauges.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less 6 another.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less6.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\more6 another.stl"
@@ -287,7 +287,7 @@ int main(int argc, char* argv[])
     bool layerCompleted = false;
     int layerIdx = 2;
     // define maximal voxel layer by desired wall thickness
-    int maxLayer = round((double)MINIMAL_WALL_THICKNESS / VOXEL_SIZE) + 1;
+    int maxLayer = (int)round((double)MINIMAL_WALL_THICKNESS / VOXEL_SIZE) + 1;
     while (!layerCompleted)
     {
         printf("Calc Layer #%d...", layerIdx);
@@ -311,7 +311,7 @@ int main(int argc, char* argv[])
     PTSolid thinAreasvoxels = PV_ENTITY_NULL;
     for (auto& it : voxelsIJK)
     {
-        PTBounds bounds = { it[0], it[0] + 1, it[1], it[1] + 1, it[2], it[2] + 1 };
+        PTBounds bounds = { (double)it[0], (double)it[0] + 1, (double)it[1], (double)it[1] + 1, (double)it[2], (double)it[2] + 1 };
         PTSolid brick;
         PFSolidCreateFromBox(env, bounds, NULL, &brick);
         if (thinAreasvoxels)
@@ -325,7 +325,7 @@ int main(int argc, char* argv[])
 
     for (auto& it : voxelsIJK)
     {
-        PTBounds bounds = { it[0], it[0] + 1, it[1], it[1] + 1, it[2], it[2] + 1 };
+        PTBounds bounds = { (double)it[0], (double)it[0] + 1, (double)it[1], (double)it[1] + 1, (double)it[2], (double)it[2] + 1 };
         PTSolid brick;
         PFSolidCreateFromBox(env, bounds, NULL, &brick);
         if (thickAreasvoxels)
@@ -339,7 +339,7 @@ int main(int argc, char* argv[])
 
     for (auto& it : voxelsIJK)
     {
-        PTBounds bounds = { it[0], it[0] + 1, it[1], it[1] + 1, it[2], it[2] + 1 };
+        PTBounds bounds = { (double)it[0], (double)it[0] + 1, (double)it[1], (double)it[1] + 1, (double)it[2], (double)it[2] + 1 };
         PTSolid brick;
         PFSolidCreateFromBox(env, bounds, NULL, &brick);
         if (transientAreasvoxels)
@@ -404,7 +404,7 @@ int main(int argc, char* argv[])
             PTSolid layer = PV_ENTITY_NULL;
             for (auto& it : voxelsIJK)
             {
-                PTBounds bounds = { it[0], it[0] + 1, it[1], it[1] + 1, it[2], it[2] + 1 };
+                PTBounds bounds = { (double)it[0], (double)it[0] + 1, (double)it[1], (double)it[1] + 1, (double)it[2], (double)it[2] + 1 };
                 PTSolid brick;
                 PFSolidCreateFromBox(env, bounds, NULL, &brick);
                 if (layer)
