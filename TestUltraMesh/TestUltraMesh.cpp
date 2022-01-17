@@ -25,13 +25,14 @@
 //#define FILE_NAME  L"C:\\Parts\\Industrial\\Rocker Cover.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\3dcross.stl"
-#define FILE_NAME  L"C:\\Parts\\Castor\\gauges.stl"
+//define FILE_NAME  L"C:\\Parts\\Castor\\gauges.stl"
+//#define FILE_NAME  L"C:\\Parts\\Castor\\Model 4.stp.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less 6 another.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less6.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\more6 another.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Part24.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\FlachWithTwoHoles.stl"
-//#define FILE_NAME L""
+#define FILE_NAME L""
 
 
 PTSolid ReadSTL(PTEnvironment env, std::wstring fileName)
@@ -245,8 +246,8 @@ int main(int argc, char* argv[])
         model = ReadSTL(env, fileName);
     else
     {
-        PFSolidCreateSphere(env, PTPoint{ 0.0, 0.0, 0.0 }, 50.0, 5, NULL, &model);
-        //      PFSolidCreateCylinder(env, PTPoint{ 0.0, 0.0, 0.0 }, PTPoint{ 0.0, 0.0, 100.0 }, 20.0, 5, NULL, &model);
+        //PFSolidCreateSphere(env, PTPoint{ 0.0, 0.0, 0.0 }, 50.0, 5, NULL, &model);
+              PFSolidCreateCylinder(env, PTPoint{ 0.0, 0.0, 0.0 }, PTPoint{ 0.0, 0.0, 100.0 }, 20.0, 5, NULL, &model);
         //        PFSolidCreateFromBox(env, PTBounds{ -20.0, 20.0, -20.0, 20.0, -20.0, 20.0, }, NULL, &model);
      }
     PTTransformMatrix mat;
@@ -306,6 +307,7 @@ int main(int argc, char* argv[])
     voxels.ClassifyByDepth(MINIMAL_WALL_THICKNESS / 2.0, 999.0, VOXEL_FLAG_THICK);
     for (int i = 0; i < maxLayer / 2; i++)
       voxels.AdjustNeighboringFlags();
+    voxels.Dilate(1, VOXEL_FLAG_THIN , 1);
     //std::set<std::array<int, 3>> outside = voxels.Outside();
     voxels.RenderByFlag(VOXEL_FLAG_THIN, voxelsIJK);
     PTSolid thinAreasvoxels = PV_ENTITY_NULL;

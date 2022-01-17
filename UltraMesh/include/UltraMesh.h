@@ -40,6 +40,9 @@ public:
     void CalcColors(const double redYellow, const double yellowGreen);
     void SaveAsVRML(const std::wstring fileName);
     void CalcThickness(const UltraMesh& otherMesh);
+    bool CalcMinimas(std::vector<Eigen::Vector3d>& minimas, std::vector<Eigen::Vector3d>& normals);
+    bool CalcSkeleton(double minDistBetweenSkeletonPoints, std::vector<Eigen::Vector3d>& skeleton, std::vector<Eigen::Vector3d>& normals);
+
 
 
 	std::vector<UltraVertex> m_vertices;

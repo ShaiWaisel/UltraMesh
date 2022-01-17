@@ -842,6 +842,93 @@ void UltraMesh::CalcThickness(const UltraMesh& otherMesh)
     }
 }
 
+bool UltraMesh::CalcMinimas(std::vector<Eigen::Vector3d>& minimas, std::vector<Eigen::Vector3d>& normals)
+{
+    for (auto& vertex : m_vertices)
+    {
+        //if ((abs(vertex.m_position[0] - 178.7) < 0.2) && (abs(vertex.m_position[1] - 233.2) < 0.2) && (abs(vertex.m_position[2] - 3.2) < 0.2))
+        //    printf("this");
+        if (vertex.m_normal[2] < -0.2)
+        {
+            bool lowest = true;
+            for (auto& vIdx : vertex.Edges())
+            {
+                Eigen::Vector3d otherP = m_vertices[m_edges[vIdx].m_idxV2].m_position;
+                if (otherP[2] < vertex.m_position[2])
+                {
+                    lowest = false;
+                    break;
+                }
+            }
+            if (lowest)
+            {
+                minimas.push_back(vertex.m_position);
+                normals.push_back(vertex.m_normal);
+            }
+        }
+    }
+
+    return true;
+}
+
+bool UltraMesh::CalcSkeleton( double minDistBetweenSkeletonPoints, std::vector<Eigen::Vector3d>& skeleton, std::vector<Eigen::Vector3d>& normals)
+{
+    for (auto& edge : m_edges)
+    {
+        if (edge.Status() == FLAG_RESET)
+        {
+
+            Eigen::Vector3d normal1 = m_faces[edge.m_idxFace].Normal();
+            if (normal1[2] < 0.0)
+            {
+                Eigen::Vector3d normal2 = m_faces[m_edges[edge.Twin()].m_idxFace].Normal();
+                if (normal2[2] < 0.0)
+                {
+                    Eigen::Vector3d p1 = m_vertices[edge.m_idxV1].m_position;
+                    Eigen::Vector3d p2 = m_vertices[edge.m_idxV2].m_position;
+                    Eigen::Vector3d n1 = m_vertices[edge.m_idxV1].m_normal;
+                    Eigen::Vector3d n2 = m_vertices[edge.m_idxV2].m_normal;
+                    Eigen::Vector3d p3 = { p2[0], p2[1], p2[2] - 1.0 };
+                    Eigen::Vector3d v1 = p2 - p1;
+                    Eigen::Vector3d v2 = p3 - p1;
+                    Eigen::Vector3d n = v1.cross(v2);
+                    double nd1 = normal1.dot(n);
+                    double nd2 = normal2.dot(n);
+                    if (nd1*nd2 < 0.0)
+                    {
+                        skeleton.push_back(m_vertices[edge.m_idxV1].m_position);
+                        skeleton.push_back(m_vertices[edge.m_idxV2].m_position);
+                        normals.push_back(m_vertices[edge.m_idxV1].m_normal);
+                        normals.push_back(m_vertices[edge.m_idxV2].m_normal);
+                        double len = sqrt((p1[0] - p2[0])*(p1[0] - p2[0]) + (p1[1] - p2[1])*(p1[1] - p2[1]));
+                        if (len > minDistBetweenSkeletonPoints)
+                        {
+                            int middles = (int)round(len / minDistBetweenSkeletonPoints) + 1;
+                            double step = len / middles;
+                            for (int i = 1; i < middles; i++)
+                            {
+                                double t = (double)i / middles;
+                                Eigen::Vector3d p = p1 + (p2 - p1) * t;
+                                Eigen::Vector3d n = n1 + (n2 - n1) * t;
+                                skeleton.push_back(p);
+                                normals.push_back(n);
+                            }
+                        }
+                        edge.SetStatus(FLAG_MARK);
+                        m_edges[edge.Twin()].SetStatus(FLAG_MARK);
+                    }
+                }
+            }
+        }
+    }
+    for (auto& edge : m_edges)
+        edge.SetStatus(FLAG_RESET);
+    return true;
+}
+
+
+
+
 
 
 

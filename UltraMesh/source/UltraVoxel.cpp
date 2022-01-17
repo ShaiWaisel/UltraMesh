@@ -989,17 +989,17 @@ bool VoxelVolume::HasNeighbor(const int& i, const int& j, const int& k, const in
 
 bool VoxelVolume::HasNeighbor(const int& i, const int& j, const int& k, const char& flags, bool diagonal)
 {
-    if (m_voxels[i - 1][j][k].flag & flags)
+    if (m_voxels[i - 1][j][k].flag == flags)
         return true;
-    if (m_voxels[i][j - 1][k].flag & flags)
+    if (m_voxels[i][j - 1][k].flag == flags)
         return true;
-    if (m_voxels[i][j][k - 1].flag & flags)
+    if (m_voxels[i][j][k - 1].flag == flags)
         return true;
-    if (m_voxels[i + 1][j][k].flag & flags)
+    if (m_voxels[i + 1][j][k].flag == flags)
         return true;
-    if (m_voxels[i][j + 1][k].flag & flags)
+    if (m_voxels[i][j + 1][k].flag == flags)
         return true;
-    if (m_voxels[i][j][k + 1].flag & flags)
+    if (m_voxels[i][j][k + 1].flag == flags)
         return true;
 
     if (diagonal)
@@ -1081,7 +1081,7 @@ void VoxelVolume::AdjustNeighboringFlags()
             {
                 if (m_voxels[i][j][k].flag == VOXEL_FLAG_THIN)
                 {
-                      if ((m_voxels[i][j][k].layer == 1) && (HasNeighbor(i,j,k,flags, true))  )
+                      if ((m_voxels[i][j][k].layer == 1) && (const char)(HasNeighbor(i,j,k,flags, true))  )
                           m_voxels[i][j][k].flag = VOXEL_FLAG_TRANSIENT + 100;
                 }
             }
@@ -1094,3 +1094,29 @@ void VoxelVolume::AdjustNeighboringFlags()
 
             }
 }
+
+void VoxelVolume::Dilate(const int layer, const char flag, const int layers)
+{
+    for (int i = 0; i < layers; i++)
+    {
+        for (int i = 1; i <= m_size[0]; i++)
+            for (int j = 1; j <= m_size[1]; j++)
+                for (int k = 1; k <= m_size[2]; k++)
+                {
+                    if ((m_voxels[i][j][k].layer == 0) && (HasNeighbor(i, j, k, (const char)flag, false)))
+                    {
+                        m_voxels[i][j][k].flag = flag + 100;
+                        m_voxels[i][j][k].layer = layer;
+                    }
+                }
+        for (int i = 1; i <= m_size[0]; i++)
+            for (int j = 1; j <= m_size[1]; j++)
+                for (int k = 1; k <= m_size[2]; k++)
+                {
+                    if (m_voxels[i][j][k].flag > 100)
+                        m_voxels[i][j][k].flag -= 100;
+
+                }
+    }
+}
+

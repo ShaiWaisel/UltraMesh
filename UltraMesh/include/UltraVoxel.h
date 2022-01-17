@@ -19,7 +19,7 @@ typedef double Bounds[6];
 class UltraFace;
 class UltraVertex;
 
-struct Voxel
+struct UltraVoxel
 {
     long int ancestor = 0;
     int layer = 0;
@@ -45,6 +45,7 @@ public:
     void ClassifyByDepth(const double fromDepth, const double toDepth, char flag);
     void RenderByFlag(char flag, std::vector< Eigen::Vector3i>& ijks);
     void AdjustNeighboringFlags();
+    void Dilate(const int layer, const char flag, const int layers);
     std::set<std::array<int, 3>> Border() { return m_border; }
     std::set<std::array<int, 3>> Outside() { return m_outside; }
 
@@ -70,7 +71,7 @@ private:
     Bounds m_bounds = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     Eigen::Vector3i m_size = { 0, 0, 0 };
     Eigen::Vector3d m_margins = { 0.0, 0.0, 0.0 };
-    std::vector<std::vector<std::vector<Voxel>>> m_voxels;
+    std::vector<std::vector<std::vector<UltraVoxel>>> m_voxels;
     std::set<std::array<int,3>> m_border;
     std::vector<Eigen::Vector3d> m_faceNormals;
     std::set<std::array<int, 3>> m_outside;
