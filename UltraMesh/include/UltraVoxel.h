@@ -1,7 +1,7 @@
 #pragma once
 #include "C:/Eigen3.3.7/Eigen/Dense"
 
-#include "UltraMeshExportImport.h"
+//#include "UltraMeshExportImport.h"
 #include <set>
 #include <array>
 
@@ -31,7 +31,7 @@ struct UltraVoxel
 
 /* ============================================================================================== */
 
-class ULTRAMESH_API VoxelVolume
+class  VoxelVolume
 {
 public:
     VoxelVolume(const Bounds& bounds, const double resolution);
@@ -61,8 +61,8 @@ private:
     void DrawTrig(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, const Eigen::Vector3i& p3, const int cost,
         const int faceIdx);
     void SetDepth(Eigen::Vector3i ijk, bool diagonal);
-    void FloodFill(const const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
-    void FloodFillRays(const const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
+    void FloodFill(const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
+    void FloodFillRays(const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
     bool FindSeed(const int seedValue, const int neighborValue, Eigen::Vector3i& ijk);
     bool HasNeighbor(const int& i, const int& j, const int& k, const int& layer, bool diagonal);
     bool HasNeighbor(const int& i, const int& j, const int& k, const char& flags, bool diagonal);

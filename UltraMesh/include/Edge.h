@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Vertex.h"
-#include "UltraMeshExportImport.h"
+//#include "UltraMeshExportImport.h"
 
 
 
-class ULTRAMESH_API UltraEdge
+class UltraEdge
 {
 public:
 	UltraEdge(int idxV1, int idxV2, int idxFace);

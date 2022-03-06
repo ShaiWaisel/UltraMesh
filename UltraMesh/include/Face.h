@@ -12,7 +12,7 @@
 
 class UltraVertex;
 
-class ULTRAMESH_API UltraFace 
+class UltraFace 
 {
 public:
 	UltraFace(int idx1, int idx2, int idx3);

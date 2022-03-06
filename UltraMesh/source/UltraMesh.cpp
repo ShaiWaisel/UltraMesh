@@ -3,7 +3,6 @@
 #include <fstream>
 
 
-
 typedef struct VVF
 {
 public:
@@ -20,6 +19,11 @@ public:
 	int m_f;
 	int m_i;
 }VVF;
+
+void Zpolyline::AddVertex(const double x, const double y)
+{
+    m_vertices.push_back(std::make_pair(x, y));
+}
 
 UltraMesh::UltraMesh()
 {
@@ -59,7 +63,7 @@ void UltraMesh::MapEdges()
 {
 	bool verbose = false;
 	m_edges.clear();
-	for (size_t idx = 0; idx < m_faces.size(); idx++)
+	for (int idx = 0; idx < (int)m_faces.size(); idx++)
 	{
 		m_edges.push_back(UltraEdge(m_faces[idx].m_vertices[0], m_faces[idx].m_vertices[1], (int)idx));
 		m_edges.push_back(UltraEdge(m_faces[idx].m_vertices[1], m_faces[idx].m_vertices[2], (int)idx));
@@ -146,7 +150,7 @@ void UltraMesh::CalcCurvature()
         vertex.CalcCurvature(m_faces, m_edges, m_vertices);
 }
 
-ULTRAMESH_API Bounds* UltraMesh::CalcBounds()
+Bounds* UltraMesh::CalcBounds()
 {
 	for (int i = 0; i < 6; i++)
 		m_bounds[i] = (i % 2 == 0) ? DBL_MAX : -DBL_MAX;
@@ -696,7 +700,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
             vertex->m_shadowPosition = position + direction * vertex->m_normal * maxDist;// *sqrt(1 + vertex->m_curvature);
             if (isnan(vertex->m_shadowPosition[0]))
             {
-                printf("NaN detected vertex %d \n", vertexIdx);
+                printf("NaN detected vertex %zd \n", vertexIdx);
             }
         }
         printf("\rProcessing...%3.1f%%\n", 100.0);
@@ -926,6 +930,10 @@ bool UltraMesh::CalcSkeleton( double minDistBetweenSkeletonPoints, std::vector<E
     return true;
 }
 
+bool UltraMesh::Slice(const std::set<double>& zValues, std::set<std::pair<double, std::vector<Zpolyline>>>& slices)
+{
+
+}
 
 
 

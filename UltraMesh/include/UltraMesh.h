@@ -1,27 +1,40 @@
 #pragma once
 
 #include <vector>
+#include <set>
 #include "vertex.h"
 #include "Edge.h"
-#include "UltraMeshExportImport.h"
+//#include "UltraMeshExportImport.h"
 
 
-
-
-class ULTRAMESH_API Bucket
+class Bucket
 {
 public:
     Bucket() { ; }
-	Bucket(Bounds bounds, int idxX, int idxY, int idxZ);
-	bool IsInside(Eigen::Vector3d point);
-	std::set<int> m_triangles;
-	bool IntersectWithRay(Eigen::Vector3d& origin, Eigen::Vector3d& direction);
-	Bounds m_bounds = { DBL_MAX, -DBL_MAX, DBL_MAX, -DBL_MAX, DBL_MAX, -DBL_MAX };
-	Eigen::Vector3i m_gridLocation = { 0, 0, 0 };
+    Bucket(Bounds bounds, int idxX, int idxY, int idxZ);
+    bool IsInside(Eigen::Vector3d point);
+    std::set<int> m_triangles;
+    bool IntersectWithRay(Eigen::Vector3d& origin, Eigen::Vector3d& direction);
+    Bounds m_bounds = { DBL_MAX, -DBL_MAX, DBL_MAX, -DBL_MAX, DBL_MAX, -DBL_MAX };
+    Eigen::Vector3i m_gridLocation = { 0, 0, 0 };
+};
+
+class Zpolyline
+{
+public:
+    Zpolyline(const double z) { m_Z = z; };
+    void AddVertex(const double x, const double y);
+    bool Closed() { return m_closed; }
+private:
+    double m_Z = 0.0;
+    bool m_closed = false;
+    std::vector<std::pair<double, double>> m_vertices;
 };
 
 
-class ULTRAMESH_API UltraMesh
+
+
+class UltraMesh
 {
 public:
 	UltraMesh();
@@ -42,6 +55,7 @@ public:
     void CalcThickness(const UltraMesh& otherMesh);
     bool CalcMinimas(std::vector<Eigen::Vector3d>& minimas, std::vector<Eigen::Vector3d>& normals);
     bool CalcSkeleton(double minDistBetweenSkeletonPoints, std::vector<Eigen::Vector3d>& skeleton, std::vector<Eigen::Vector3d>& normals);
+    bool Slice(const std::set<double>& zValues, std::set<std::pair<double, std::vector<Zpolyline>>>& slices);
 
 
 

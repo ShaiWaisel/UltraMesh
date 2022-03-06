@@ -26,13 +26,13 @@
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\3dcross.stl"
 //define FILE_NAME  L"C:\\Parts\\Castor\\gauges.stl"
-//#define FILE_NAME  L"C:\\Parts\\Castor\\Model 4.stp.stl"
+#define FILE_NAME  L"C:\\Parts\\Castor\\Model 4.stp.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less 6 another.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less6.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\more6 another.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Part24.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\FlachWithTwoHoles.stl"
-#define FILE_NAME L""
+//#define FILE_NAME L""
 
 
 PTSolid ReadSTL(PTEnvironment env, std::wstring fileName)
@@ -259,9 +259,11 @@ int main(int argc, char* argv[])
     {
         PTSolidRemeshOpts initSolidRemeshOpts;
         PMInitSolidRemeshOpts(&initSolidRemeshOpts);
-        initSolidRemeshOpts.keep_sharp_features = TRUE;
         initSolidRemeshOpts.remesh_limits = PV_REMESH_LIMIT_ERROR;
+#if PG_VER == 31
+        initSolidRemeshOpts.keep_sharp_features = TRUE;
         initSolidRemeshOpts.keep_boundaries = TRUE;
+#endif
         initSolidRemeshOpts.curvature_sensitive_remeshing = TRUE;
         initSolidRemeshOpts.error = 0.1;
         status += PFSolidRemesh(model, &initSolidRemeshOpts);
@@ -307,20 +309,26 @@ int main(int argc, char* argv[])
     voxels.ClassifyByDepth(MINIMAL_WALL_THICKNESS / 2.0, 999.0, VOXEL_FLAG_THICK);
     for (int i = 0; i < maxLayer / 2; i++)
       voxels.AdjustNeighboringFlags();
-    voxels.Dilate(1, VOXEL_FLAG_THIN , 1);
+    voxels.Dilate(1, VOXEL_FLAG_THIN , 3);
     //std::set<std::array<int, 3>> outside = voxels.Outside();
     voxels.RenderByFlag(VOXEL_FLAG_THIN, voxelsIJK);
     PTSolid thinAreasvoxels = PV_ENTITY_NULL;
     for (auto& it : voxelsIJK)
     {
-        PTBounds bounds = { (double)it[0], (double)it[0] + 1, (double)it[1], (double)it[1] + 1, (double)it[2], (double)it[2] + 1 };
+        PTBounds bounds = { (double)it[0]-EPSILON6, (double)it[0] + 1 + EPSILON6, (double)it[1] - EPSILON6, (double)it[1] + 1 + EPSILON6, (double)it[2] - EPSILON6, (double)it[2] + 1+ EPSILON6 };
         PTSolid brick;
         PFSolidCreateFromBox(env, bounds, NULL, &brick);
         if (thinAreasvoxels)
-            PFSolidConcatenate(thinAreasvoxels, brick, TRUE, NULL);
+            status += PFSolidUnion(thinAreasvoxels, brick,  NULL);
         else
-            PFSolidCopy(brick, NULL, &thinAreasvoxels);
+            status = PFSolidCopy(brick, NULL, &thinAreasvoxels);
+        status += PFSolidDestroy(brick);
     }
+    printf("Voxels solid %d triangles, status=%d\n", PFEntityGetNat32Property(thinAreasvoxels, PV_SOLID_PROP_NUM_FACES), status);
+    auto end = std::chrono::high_resolution_clock::now();
+    printf("Thin areas calculation completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
+    
+
 
     voxels.RenderByFlag(VOXEL_FLAG_THICK, voxelsIJK);
     PTSolid thickAreasvoxels = PV_ENTITY_NULL;
@@ -357,8 +365,11 @@ int main(int argc, char* argv[])
     PFSolidTransform(thinAreasvoxels, mat);
     PFSolidTransform(thickAreasvoxels, mat);
     PFSolidTransform(transientAreasvoxels, mat);
-   auto end = std::chrono::high_resolution_clock::now();
+    end = std::chrono::high_resolution_clock::now();
     printf("Completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
+    printf("Dumping file...");
+    WriteSTL(thinAreasvoxels, L"c:\\temp\\thin.stl");
+    printf("Done!\n");
 
 
 	PTBounds modelBounds;

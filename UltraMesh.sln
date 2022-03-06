@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestUltraMesh", "TestUltraM
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UltraMesh", "UltraMesh\UltraMesh.vcxproj", "{471F9B58-7150-45B8-8FBB-A6CB9C042D36}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SliceUltraMesh", "SliceUltraMesh\SliceUltraMesh.vcxproj", "{6C2DECD3-2CA6-4517-A428-5902E19D0C16}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -34,6 +36,14 @@ Global
 		{471F9B58-7150-45B8-8FBB-A6CB9C042D36}.Release|x64.Build.0 = Release|x64
 		{471F9B58-7150-45B8-8FBB-A6CB9C042D36}.Release|x86.ActiveCfg = Release|Win32
 		{471F9B58-7150-45B8-8FBB-A6CB9C042D36}.Release|x86.Build.0 = Release|Win32
+		{6C2DECD3-2CA6-4517-A428-5902E19D0C16}.Debug|x64.ActiveCfg = Debug|x64
+		{6C2DECD3-2CA6-4517-A428-5902E19D0C16}.Debug|x64.Build.0 = Debug|x64
+		{6C2DECD3-2CA6-4517-A428-5902E19D0C16}.Debug|x86.ActiveCfg = Debug|Win32
+		{6C2DECD3-2CA6-4517-A428-5902E19D0C16}.Debug|x86.Build.0 = Debug|Win32
+		{6C2DECD3-2CA6-4517-A428-5902E19D0C16}.Release|x64.ActiveCfg = Release|x64
+		{6C2DECD3-2CA6-4517-A428-5902E19D0C16}.Release|x64.Build.0 = Release|x64
+		{6C2DECD3-2CA6-4517-A428-5902E19D0C16}.Release|x86.ActiveCfg = Release|Win32
+		{6C2DECD3-2CA6-4517-A428-5902E19D0C16}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
