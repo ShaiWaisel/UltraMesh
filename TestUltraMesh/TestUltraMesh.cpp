@@ -6,6 +6,7 @@
 #include <chrono>
 #include "../UltraMesh/include/UltraMesh.h"
 #include "../UltraMesh/window.h"
+#include "pg/pgapi.h"
 #include "pg/pgrender.h"
 #include "C:/Eigen3.3.7/Eigen/Dense"
 
@@ -260,9 +261,10 @@ int main(int argc, char* argv[])
         PTSolidRemeshOpts initSolidRemeshOpts;
         PMInitSolidRemeshOpts(&initSolidRemeshOpts);
         initSolidRemeshOpts.remesh_limits = PV_REMESH_LIMIT_ERROR;
-#if PG_VER == 31
+#if PG_VERSION_CURRENT == PG_VERSION_30
         initSolidRemeshOpts.keep_sharp_features = TRUE;
         initSolidRemeshOpts.keep_boundaries = TRUE;
+
 #endif
         initSolidRemeshOpts.curvature_sensitive_remeshing = TRUE;
         initSolidRemeshOpts.error = 0.1;

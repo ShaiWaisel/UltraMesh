@@ -14,15 +14,16 @@
 #define JOURNAL_DEBUG 0
 #define VISUALIZE_STAGES 0
 #define TIME_INTERVAL(end, start) double(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()) / 1000.0
+#define SLICE_RESOLUTION 1
 
 //#define FILE_NAME  L"c:\\parts\\castor\\Spiral_20480.stl"
-//#define FILE_NAME  L"c:\\parts\\industrial\\bracket.stl"
+#define FILE_NAME  L"c:\\parts\\industrial\\bracket.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Remeshed\\73986 LEVER_curve_sensitive.stl"
 //#define FILE_NAME  L"C:\\Parts\\Industrial\\Rocker Cover.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\3dcross.stl"
 //define FILE_NAME  L"C:\\Parts\\Castor\\gauges.stl"
-#define FILE_NAME  L"C:\\Parts\\Castor\\Model 4.stp.stl"
+//#define FILE_NAME  L"C:\\Parts\\Castor\\Model 4.stp.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less 6 another.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less6.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\more6 another.stl"
@@ -162,12 +163,14 @@ int main(int argc, char* argv[])
 
     double modelColor[3] = { 0.5, 0.5, 0.5 };
     double modelEdgeColor[3] = { 0.5, 0.5, 0.5 };
-    PTNat32 modelTransparency = 0;
-    bool modelViewEdges = true;
-    bool modelView = true;
+    PTNat32 modelTransparency = 50;
+    bool modelViewEdges = false;
+    bool modelView = false;
 
     double bgBottomColor[3] = { 0.2, 0.4, 0.6 };
     double bgTopColor[3] = { 0.1, 0.2, 0.3 };
+    double closedSliceColor[3] = { 1.0, 1.0, 1.0 };
+    double openedSliceColor[3] = { 1.0, 0.0, 0.0 };
     bool renderEdges = true;
     PTRenderStyle render_style;
     PTPolygonStyle poly_style;
@@ -222,25 +225,76 @@ int main(int argc, char* argv[])
         model = ReadSTL(env, fileName);
     else
     {
-        //PFSolidCreateSphere(env, PTPoint{ 0.0, 0.0, 0.0 }, 50.0, 5, NULL, &model);
-        PFSolidCreateCylinder(env, PTPoint{ 0.0, 0.0, 0.0 }, PTPoint{ 0.0, 0.0, 100.0 }, 20.0, 5, NULL, &model);
+        PFSolidCreateSphere(env, PTPoint{ 0.0, 0.0, 0.0 }, 50.0, 0.1, NULL, &model);
+        // PFSolidCreateCylinder(env, PTPoint{ 0.0, 0.0, 0.0 }, PTPoint{ 0.0, 0.0, 100.0 }, 20.0, 5, NULL, &model);
         //        PFSolidCreateFromBox(env, PTBounds{ -20.0, 20.0, -20.0, 20.0, -20.0, 20.0, }, NULL, &model);
     }
     auto start = std::chrono::high_resolution_clock::now();
 
     printf("Building mesh..\n");
+    printf("Solid closed: %d\n", (int)PFEntityGetBooleanProperty(model, PV_SOLID_PROP_CLOSED));
     PTSolid2UltraMesh(model, ultraMesh);
     Bounds* bounds = ultraMesh.CalcBounds();
-
     auto end = std::chrono::high_resolution_clock::now();
-    std::set<double, std::vector<Zpolyline>> slices;
-    printf("Slicing calculation completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
-    printf("Done!\n");
-
+    printf("Mesh built in %3.3f seconds. \n", TIME_INTERVAL(end, start));
+    start = end;
 
     PTBounds modelBounds;
 
     PFEntityGetBoundsProperty(model, PV_SOLID_PROP_BOUNDS, modelBounds);
+
+    int nSlices = trunc((modelBounds[5] - modelBounds[4]) / SLICE_RESOLUTION) + 1;
+    
+    std::vector<std::pair<double, std::vector<Zpolyline>>> slices;
+    for (int i = 0; i < nSlices; i++)
+    {
+        std::vector<Zpolyline> slice;
+        slices.push_back({ modelBounds[4] + i * SLICE_RESOLUTION, slice });
+    }
+    ultraMesh.Slice(slices);
+    end = std::chrono::high_resolution_clock::now();
+
+    printf("Slicing calculation completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
+    start = end;
+    std::vector<PTCurve> curves;
+    std::vector<PTWorldEntity> wCurves;
+    int closedLoops = 0;
+    int openLoops = 0;
+    for (int i = 0; i < slices.size(); i++)
+    {
+        for (auto& polyline : slices[i].second)
+        {
+            PTCurve curve = PV_ENTITY_NULL;
+            PTWorldEntity wCurve = PV_ENTITY_NULL;
+            PFCurveCreate(env, NULL, &curve);
+            Eigen::Vector3d p;
+            polyline.StartPoint(0, p);
+            PFCurveBeginLoop(curve, PTPoint{ p[0], p[1], p[2] });
+            PTCurveEdgeOpts opts;
+            PMInitCurveEdgeOpts(&opts);
+            opts.colour_format = PV_COLOUR_DOUBLE_RGB_ARRAY;
+            opts.colour = (!polyline.Closed()) ? closedSliceColor : openedSliceColor;
+            for (int segIdx = 0; segIdx < polyline.NSegments(); segIdx++)
+            {
+                polyline.EndPoint(segIdx, p);
+                PFCurveAddLine(curve, PTPoint{ p[0], p[1], p[2] }, &opts);
+            }
+            PFCurveEndLoop(curve);
+            if (polyline.Closed())
+                closedLoops++;
+            else
+                openLoops++;
+            curves.push_back(curve);
+            PFWorldAddEntity(world, curve, &wCurve);
+        }
+    }
+    end = std::chrono::high_resolution_clock::now();
+    printf("Found %d loops: %d closed and %d open\n", closedLoops + openLoops, closedLoops, openLoops);
+    printf("Rendering completed in %3.3f seconds. \n", TIME_INTERVAL(end, start));
+
+    printf("Done!\n");
+
+
 
 
     PTWorldEntity modelEntity = PV_ENTITY_NULL;

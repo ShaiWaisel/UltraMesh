@@ -7,6 +7,9 @@
 
 typedef double Bounds[6];
 
+#define EPSILON3 1.0E-3
+#define EPSILON4 1.0E-4
+#define EPSILON5 1.0E-5
 #define EPSILON6 1.0E-6
 #define VOXEL_FLAG_EMPTY 0
 #define VOXEL_FLAG_THIN 1

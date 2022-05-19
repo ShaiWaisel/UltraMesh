@@ -1,11 +1,11 @@
 /*
- *   $Id: //pg/RELEASE/30/P03/external_demos/examples/include/window.h#1 $
+ *   $Id: //pg/RELEASE/31/FCS/external_demos/examples/include/window.h#1 $
  *
- *   $File: //pg/RELEASE/30/P03/external_demos/examples/include/window.h $
+ *   $File: //pg/RELEASE/31/FCS/external_demos/examples/include/window.h $
  *   $Revision: #1 $
- *   $Change: 157229 $
- *   $Author: NICKW $
- *   $DateTime: 2021/02/03 15:24:31 $
+ *   $Change: 166877 $
+ *   $Author: nigel $
+ *   $DateTime: 2021/11/01 15:03:48 $
  *
  *   Description:
  *
@@ -13,7 +13,7 @@
  *
  *   Copyright Notice:
  *
- *      $Copyright: MachineWorks Ltd. 1990-2019, 2020$
+ *      $Copyright: MachineWorks Ltd. 1990-2020, 2021$
  *      All rights reserved.
  *
  *      This software and its associated documentation contains proprietary,

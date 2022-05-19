@@ -20,9 +20,57 @@ public:
 	int m_i;
 }VVF;
 
-void Zpolyline::AddVertex(const double x, const double y)
+bool Zpolyline::AddSegment(const double x1, const double y1, const double x2, const double y2)
 {
-    m_vertices.push_back(std::make_pair(x, y));
+    if (m_segments.size() == 0)
+    {
+        m_segments.push_back(std::make_pair(std::make_pair(x1, y1), std::make_pair(x2, y2)));
+        return true;
+    }
+    if (m_closed)
+        return false;
+    Eigen::Vector2d p1 = { x1, y1 };
+    Eigen::Vector2d p2 = { x2, y2 };
+    Eigen::Vector2d head = {m_segments.begin()->first.first, m_segments.begin()->first.second };
+    Eigen::Vector2d tail = { m_segments.back().second.first, m_segments.back().second.second };
+    if ((p1 - tail).squaredNorm() < EPSILON4)
+    {
+        m_segments.push_back(std::make_pair(std::make_pair(x1, y1), std::make_pair(x2, y2)));
+        m_closed = ((Eigen::Vector2d{ x2, y2 } - head).squaredNorm() < EPSILON6);
+        return true;
+    }
+    if ((Eigen::Vector2d{ x2, y2 } - head).squaredNorm() < EPSILON4)
+    {
+        m_segments.push_front(std::make_pair(std::make_pair(x1, y1), std::make_pair(x2, y2)));
+        m_closed = ((Eigen::Vector2d{ x1, y1 } - tail).squaredNorm() < EPSILON6);
+        return true;
+    }
+    return false;
+}
+
+void Zpolyline::StartPoint(int idx, Eigen::Vector3d& p)
+{
+    std::list<std::pair<std::pair<double, double>, std::pair<double, double>>>::iterator it = std::next(m_segments.begin(), idx);
+    p[0] = it->first.first;
+    p[1] = it->first.second;
+    p[2] = m_Z;
+};
+
+void Zpolyline::EndPoint(int idx, Eigen::Vector3d& p)
+{
+    std::list<std::pair<std::pair<double, double>, std::pair<double, double>>>::iterator it = std::next(m_segments.begin(), idx);
+    p[0] = it->second.first;
+    p[1] = it->second.second;
+    p[2] = m_Z;
+};
+
+double Zpolyline::Length()
+{
+    double length = 0.0;
+    for (auto& segment : m_segments)
+        length += sqrt((segment.second.first - segment.first.first) * (segment.second.first - segment.first.first) +
+        (segment.second.second - segment.first.second) * (segment.second.second - segment.first.second));
+    return length;
 }
 
 UltraMesh::UltraMesh()
@@ -850,8 +898,6 @@ bool UltraMesh::CalcMinimas(std::vector<Eigen::Vector3d>& minimas, std::vector<E
 {
     for (auto& vertex : m_vertices)
     {
-        //if ((abs(vertex.m_position[0] - 178.7) < 0.2) && (abs(vertex.m_position[1] - 233.2) < 0.2) && (abs(vertex.m_position[2] - 3.2) < 0.2))
-        //    printf("this");
         if (vertex.m_normal[2] < -0.2)
         {
             bool lowest = true;
@@ -930,9 +976,127 @@ bool UltraMesh::CalcSkeleton( double minDistBetweenSkeletonPoints, std::vector<E
     return true;
 }
 
-bool UltraMesh::Slice(const std::set<double>& zValues, std::set<std::pair<double, std::vector<Zpolyline>>>& slices)
+void UltraMesh::GetNearestNeighbours(Eigen::Vector3d seed, double radius, std::vector<UltraVertex>& neighbours)
 {
+    double sqRad = radius * radius;
+    neighbours.reserve(m_vertices.size());
+    for (auto& vertex : m_vertices)
+    {
+        if ((vertex.m_position - seed).squaredNorm() <= sqRad)
+            neighbours.push_back(vertex);
+    }
+}
 
+
+bool Pinch(Eigen::Vector3d p1, Eigen::Vector3d p2, const double z, double (&segment)[4])
+{
+    if (abs(p1[2] - z) < EPSILON6)
+        p1[2] += EPSILON5;
+    if (abs(p2[2] - z) < EPSILON6)
+        p2[2] += EPSILON5;
+    if (abs(p1[2] - p2[2]) < EPSILON6)
+        return false; // line parallel to the pinching plane
+    if ((abs(p1[2] - z) < EPSILON6) && (abs(p2[2] - z) < EPSILON6))
+        return false; // two points on the pinching plane
+    if ((p1[2] - z) * (p2[2] - z) > 0.0)
+        return false; // two points above or below the pinching plane
+    double factor = (z - p1[2]) / (p2[2] - p1[2]);
+    double p[2];
+    p[0] = p1[0] + factor * (p2[0] - p1[0]);
+    p[1] = p1[1] + factor * (p2[1] - p1[1]);
+    if (p2[2] < p1[2])
+    {                               // pinching downwards
+        segment[0] = p[0];
+        segment[1] = p[1];
+    }
+    else
+    {                              // pinching upwards
+        segment[2] = p[0];
+        segment[3] = p[1];
+    }
+    return ((abs(segment[2] - segment[0]) > EPSILON3) || (abs(segment[3] - segment[1]) > EPSILON3));
+}
+
+bool UltraMesh::Slice(std::vector<std::pair<double, std::vector<Zpolyline>>>& slices)
+{
+    typedef std::pair<std::pair<double, double>, std::pair<double, double>> Segment;
+    typedef std::vector<Segment> Mikado;
+
+    std::vector<Mikado> soup;
+    std::vector<double> zVals;
+    soup.reserve(slices.size());
+    zVals.reserve(slices.size());
+    for (auto& slice : slices)
+    {
+        Mikado mikado ;
+        soup.push_back(mikado);
+        zVals.push_back(slice.first);
+    }
+    for (auto& face : m_faces)
+    {
+        double faceZmin = std::min(std::min(m_vertices[face.m_vertices[0]].m_position[2], m_vertices[face.m_vertices[1]].m_position[2]), m_vertices[face.m_vertices[2]].m_position[2]);
+        double faceZmax = std::max(std::max(m_vertices[face.m_vertices[0]].m_position[2], m_vertices[face.m_vertices[1]].m_position[2]), m_vertices[face.m_vertices[2]].m_position[2]);
+        int low = (std::lower_bound(zVals.begin(), zVals.end(), faceZmin) - zVals.begin());
+        int high = (std::upper_bound(zVals.begin(), zVals.end(), faceZmax) - zVals.begin());
+        for (int idx = low; idx < high; idx++)
+        {
+            double segment[4] = { 0.0, 0.0, 0.0, 0.0 }; // constant Z
+            int pinches = 
+                (int)Pinch(m_vertices[face.m_vertices[0]].m_position, m_vertices[face.m_vertices[1]].m_position, zVals[idx], segment) +
+                (int)Pinch(m_vertices[face.m_vertices[1]].m_position, m_vertices[face.m_vertices[2]].m_position, zVals[idx], segment) +
+                (int)Pinch(m_vertices[face.m_vertices[2]].m_position, m_vertices[face.m_vertices[0]].m_position, zVals[idx], segment);
+            if (pinches == 2)
+            {
+                Segment newSegment = { {segment[0], segment[1]}, {segment[2], segment[3]} };
+                soup[idx].push_back(newSegment);
+            }
+        }
+    }
+    
+    // loop over all slices
+    for (int layerIdx = 0; layerIdx < (int)zVals.size(); layerIdx++)
+    {
+        // loop over all segments in slice idx
+        Mikado& mikado = soup[layerIdx];
+        bool chained = false;
+        while (mikado.size() > 0)
+        {
+            for (int segmentIdx = 0; segmentIdx < (int)mikado.size(); segmentIdx++)
+            {
+                auto& segment = mikado[segmentIdx];
+                chained = false;
+                for (int polyIdx = 0; polyIdx < slices[layerIdx].second.size(); polyIdx++)
+                {
+                    if (slices[layerIdx].second[polyIdx].AddSegment(segment.first.first, segment.first.second, segment.second.first, segment.second.second))
+                    {
+                        chained = true;
+                        mikado.erase(mikado.begin() + segmentIdx);
+                        break;
+                    }
+                }
+                if (chained)
+                    break;
+            }
+            if ((!chained) && (mikado.size() > 0))
+            {
+                Zpolyline polyLine(zVals[layerIdx]);
+                polyLine.AddSegment(mikado[0].first.first, mikado[0].first.second, mikado[0].second.first, mikado[0].second.second);
+                slices[layerIdx].second.push_back(polyLine);
+                chained = true;
+                mikado.erase(mikado.begin());
+            }
+
+        }
+
+        for (int polyIdx = slices[layerIdx].second.size() - 1; polyIdx > 0; polyIdx--)
+        {
+            auto& polyline = slices[layerIdx].second[polyIdx];
+            if (polyline.Length() < 0.1)
+                slices[layerIdx].second.erase(slices[layerIdx].second.begin() + polyIdx);
+        }
+    }
+
+    return true;
 }
 
 

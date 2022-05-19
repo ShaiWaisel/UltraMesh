@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <set>
+#include <list>
 #include "vertex.h"
 #include "Edge.h"
 //#include "UltraMeshExportImport.h"
@@ -23,12 +23,18 @@ class Zpolyline
 {
 public:
     Zpolyline(const double z) { m_Z = z; };
-    void AddVertex(const double x, const double y);
+    bool AddSegment(const double x1, const double y1, const double x2, const double y2);
     bool Closed() { return m_closed; }
+    void StartPoint(int idx, Eigen::Vector3d& p);
+    void EndPoint(int idx, Eigen::Vector3d& p);
+    int NSegments() { return (int)m_segments.size(); }
+    double Length();
+    double Z() { return m_Z; }
+
 private:
     double m_Z = 0.0;
     bool m_closed = false;
-    std::vector<std::pair<double, double>> m_vertices;
+    std::list<std::pair<std::pair<double, double>, std::pair<double, double>>> m_segments;
 };
 
 
@@ -55,7 +61,8 @@ public:
     void CalcThickness(const UltraMesh& otherMesh);
     bool CalcMinimas(std::vector<Eigen::Vector3d>& minimas, std::vector<Eigen::Vector3d>& normals);
     bool CalcSkeleton(double minDistBetweenSkeletonPoints, std::vector<Eigen::Vector3d>& skeleton, std::vector<Eigen::Vector3d>& normals);
-    bool Slice(const std::set<double>& zValues, std::set<std::pair<double, std::vector<Zpolyline>>>& slices);
+    void GetNearestNeighbours(Eigen::Vector3d seed, double radius, std::vector<UltraVertex>& neighbours);
+    bool Slice(std::vector<std::pair<double, std::vector<Zpolyline>>>& slices);
 
 
 

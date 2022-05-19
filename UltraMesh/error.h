@@ -1,11 +1,11 @@
 /*
- *   $Id: //pg/RELEASE/30/P03/external_demos/examples/include/error.h#1 $
+ *   $Id: //pg/RELEASE/31/FCS/external_demos/examples/include/error.h#1 $
  *
- *   $File: //pg/RELEASE/30/P03/external_demos/examples/include/error.h $
+ *   $File: //pg/RELEASE/31/FCS/external_demos/examples/include/error.h $
  *   $Revision: #1 $
- *   $Change: 157229 $
- *   $Author: NICKW $
- *   $DateTime: 2021/02/03 15:24:31 $
+ *   $Change: 166877 $
+ *   $Author: nigel $
+ *   $DateTime: 2021/11/01 15:03:48 $
  *
  *   Description:
  *
@@ -13,7 +13,7 @@
  *
  *   Copyright Notice:
  *
- *      $Copyright: MachineWorks Ltd. 1990-2019, 2020$
+ *      $Copyright: MachineWorks Ltd. 1990-2020, 2021$
  *      All rights reserved.
  *
  *      This software and its associated documentation contains proprietary,
@@ -53,14 +53,14 @@ static void simple_error_callback(
       PTStatus value;
       char * name;
    } status_names[] = {
-      { PV_STATUS_BAD_CALL, (char*)"Bad Call" },
-      { PV_STATUS_MEMORY, (char*)"Memory" },
-      { PV_STATUS_EXCEPTION, (char*)"Exception" },
-      { PV_STATUS_FILE_IO, (char*)"File IO" },
-      { PV_STATUS_INTERRUPT, (char*)"Interrupt" },
-      { PV_STATUS_INTERNAL_ERROR, (char*)"Internal Error" },
-      { PV_STATUS_UNREGISTERED_THREAD, (char*)"Unregistered Thread" },
-      { PV_STATUS_NOT_COMPLETE, (char*)"Not Complete" }
+      { PV_STATUS_BAD_CALL, (char*)("Bad Call") },
+      { PV_STATUS_MEMORY, (char*)("Memory") },
+      { PV_STATUS_EXCEPTION, (char*)("Exception") },
+      { PV_STATUS_FILE_IO, (char*)("File IO") },
+      { PV_STATUS_INTERRUPT, (char*)("Interrupt") },
+      { PV_STATUS_INTERNAL_ERROR, (char*)("Internal Error") },
+      { PV_STATUS_UNREGISTERED_THREAD, (char*)("Unregistered Thread") },
+      { PV_STATUS_NOT_COMPLETE, (char*)("Not Complete") }
    };
 
    if ((status == PV_SOCH_ERR_NOT_LICENSED) ||
@@ -124,7 +124,7 @@ static void handle_license_error (PTStatus status)
       printf("PFInitialise: HASP license no lock.\n");
       break;
    case PV_INIT_HASP_NOT_AUTHORISED :
-      printf("PFInitialise: HASP license not authorized.\n");
+      printf("PFInitialise: HASP license not authorised.\n");
       break;
    case PV_INIT_LICENSE_NOT_SET :
       printf("PFInitialise: License not set.\n");
@@ -160,13 +160,13 @@ static void handle_license_error (PTStatus status)
       printf("PFInitialise: License server communications failed.\n");
       break;
    case PV_INIT_LICENSE_WINDBACK :
-      printf("PFInitialise: License detected clock wind-back.\n");
+      printf("PFInitialise: License detected clock windback.\n");
       break;
    case PV_INIT_LICENSE_CANT_GET_DATE :
       printf("PFInitialise: License can't get date.\n");
       break;
    case PV_INIT_LICENSE_AUTH_FAILED :
-      printf("PFInitialise: License authorization failed.\n");
+      printf("PFInitialise: License authorisation failed.\n");
       break;
    case PV_INIT_LICENSE_ERROR :
       printf("PFInitialise: License error.\n");
