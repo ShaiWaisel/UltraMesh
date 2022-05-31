@@ -904,7 +904,7 @@ bool UltraMesh::CalcMinimas(std::vector<Eigen::Vector3d>& minimas, std::vector<E
             for (auto& vIdx : vertex.Edges())
             {
                 Eigen::Vector3d otherP = m_vertices[m_edges[vIdx].m_idxV2].m_position;
-                if (otherP[2] < vertex.m_position[2])
+                if (otherP[2] < vertex.m_position[2] + EPSILON6)
                 {
                     lowest = false;
                     break;
