@@ -55,6 +55,7 @@ public:
 	Bounds* CalcBounds();
 	std::vector<UltraFace> IntersectWithRay(Eigen::Vector3d& origin, Eigen::Vector3d& direction);
     void Smooth();
+    void Transform(Eigen::Affine3d mat);
     void OffsetBySkeleton(double maxOffset);
     void CalcColors(const double redYellow, const double yellowGreen);
     void SaveAsVRML(const std::wstring fileName);
@@ -63,6 +64,8 @@ public:
     bool CalcSkeleton(double minDistBetweenSkeletonPoints, std::vector<Eigen::Vector3d>& skeleton, std::vector<Eigen::Vector3d>& normals);
     void GetNearestNeighbours(Eigen::Vector3d seed, double radius, std::vector<UltraVertex>& neighbours);
     bool Slice(std::vector<std::pair<double, std::vector<Zpolyline>>>& slices);
+    void AlignToMinZ();
+
 
 
 

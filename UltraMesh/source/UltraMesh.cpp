@@ -960,6 +960,7 @@ bool UltraMesh::CalcSkeleton( double minDistBetweenSkeletonPoints, std::vector<E
                                 double t = (double)i / middles;
                                 Eigen::Vector3d p = p1 + (p2 - p1) * t;
                                 Eigen::Vector3d n = n1 + (n2 - n1) * t;
+                                n.normalize();
                                 skeleton.push_back(p);
                                 normals.push_back(n);
                             }
@@ -1015,6 +1016,17 @@ bool Pinch(Eigen::Vector3d p1, Eigen::Vector3d p2, const double z, double (&segm
         segment[3] = p[1];
     }
     return ((abs(segment[2] - segment[0]) > EPSILON3) || (abs(segment[3] - segment[1]) > EPSILON3));
+}
+
+void UltraMesh::Transform(Eigen::Affine3d mat)
+{
+    for (auto& vertex : m_vertices)
+    {
+        Eigen::Vector4d point = { vertex.m_position[0], vertex.m_position[1], vertex.m_position[2], 1.0};
+        point = mat * point;
+        for (int i=0; i<3; i++)
+            vertex.m_position[i] = point[i];
+    }
 }
 
 bool UltraMesh::Slice(std::vector<std::pair<double, std::vector<Zpolyline>>>& slices)
@@ -1098,6 +1110,100 @@ bool UltraMesh::Slice(std::vector<std::pair<double, std::vector<Zpolyline>>>& sl
 
     return true;
 }
+
+void UltraMesh::AlignToMinZ()
+{
+    UltraMesh testMesh(*this);
+    double accurateThetaX = 0.0, accurateThetaY = 0.0;
+    testMesh.CalcBounds();
+
+    Eigen::Affine3d transMat = Eigen::Affine3d::Identity();
+    double dx = (testMesh.m_bounds[0] + testMesh.m_bounds[1]) * 0.5;
+    double dy = (testMesh.m_bounds[2] + testMesh.m_bounds[3]) * 0.5;
+    double dz = (testMesh.m_bounds[4] + testMesh.m_bounds[5]) * 0.5;
+    transMat.translation() = Eigen::Vector3d(-dx, -dy, -dz);
+    testMesh.Transform(transMat);
+    double angFrom = -M_PI_2;
+    double angTo = M_PI_2;
+    double angStep = (angTo - angFrom) / 10;
+
+    double theta = angFrom;
+    while (angStep > 1.0E-6)
+    {
+        std::vector<double> heights;
+        theta = angFrom - angStep;
+        while (theta < angTo)
+        {
+            theta = theta + angStep;
+            Eigen::Affine3d aff = Eigen::Affine3d::Identity();
+            aff.rotate(Eigen::AngleAxisd(theta, Eigen::Vector3d(1, 0, 0)));
+            testMesh.Transform(aff);
+            testMesh.CalcBounds();
+            heights.push_back(testMesh.m_bounds[5] - testMesh.m_bounds[4]);
+            aff = aff.inverse();
+            testMesh.Transform(aff);
+        }
+        int minIdx = std::min_element(heights.begin(), heights.end()) - heights.begin() + 1;
+        if (minIdx < heights.size())
+            angTo = angFrom + (minIdx + 1) * angStep;
+        else
+            angTo += angStep;
+        if (minIdx > 1)
+            angFrom += (minIdx - 1) * angStep;
+        else
+            angFrom -= angStep;
+        angStep = (angTo - angFrom) / 10.0;
+        printf("X: idx %d ang from %1.8f to %1.8f step %1.8f\n", minIdx, angFrom, angTo, angStep);
+    }
+
+    accurateThetaX = (angFrom + angTo) * 0.5;
+    Eigen::Affine3d aff = Eigen::Affine3d::Identity();
+    aff.rotate(Eigen::AngleAxisd(accurateThetaX, Eigen::Vector3d(1, 0, 0)));
+    testMesh.Transform(aff);
+    Transform(aff);
+    angFrom = -M_PI_2;
+    angTo = M_PI_2;
+    angStep = (angTo - angFrom) / 10;
+
+    theta = angFrom;
+    while (angStep > 1.0E-6)
+    {
+        std::vector<double> heights;
+        theta = angFrom - angStep;
+        while (theta < angTo)
+        {
+            theta = theta + angStep;
+            Eigen::Affine3d aff = Eigen::Affine3d::Identity();
+            aff.rotate(Eigen::AngleAxisd(theta, Eigen::Vector3d(0, 1, 0)));
+            testMesh.Transform(aff);
+            testMesh.CalcBounds();
+            heights.push_back(testMesh.m_bounds[5] - testMesh.m_bounds[4]);
+            aff = aff.inverse();
+            testMesh.Transform(aff);
+        }
+        int minIdx = std::min_element(heights.begin(), heights.end()) - heights.begin() + 1;
+        if (minIdx < heights.size())
+            angTo = angFrom + (minIdx + 1) * angStep;
+        else
+            angTo += angStep;
+        if (minIdx > 1)
+            angFrom += (minIdx - 1) * angStep;
+        else
+            angFrom -= angStep;
+        angStep = (angTo - angFrom) / 10.0;
+        printf("Y: idx %d ang from %1.8f to %1.8f step %1.8f\n", minIdx, angFrom, angTo, angStep);
+    }
+
+    accurateThetaY = (angFrom + angTo) * 0.5;
+    printf("Final rotation angle: X %f Y %f\n", accurateThetaX *180.0 / M_PI, accurateThetaY *180.0 / M_PI);
+    aff = Eigen::Affine3d::Identity();
+    //aff.rotate(Eigen::AngleAxisd(accurateThetaX, Eigen::Vector3d(1, 0, 0)));
+    aff.rotate(Eigen::AngleAxisd(accurateThetaY, Eigen::Vector3d(0, 1, 0)));
+    //aff.translate(Eigen::Vector3d(dx, dy, dz));
+    Transform(aff);
+
+}
+
 
 
 

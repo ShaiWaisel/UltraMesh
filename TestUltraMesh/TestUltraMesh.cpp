@@ -22,12 +22,13 @@
 
 //#define FILE_NAME  L"c:\\parts\\castor\\Spiral_20480.stl"
 //#define FILE_NAME  L"c:\\parts\\industrial\\bracket.stl"
+#define FILE_NAME  L"c:\\temp\\dentals1.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Remeshed\\73986 LEVER_curve_sensitive.stl"
 //#define FILE_NAME  L"C:\\Parts\\Industrial\\Rocker Cover.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\Coplanar\\coplanar_mesh1.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\3dcross.stl"
 //define FILE_NAME  L"C:\\Parts\\Castor\\gauges.stl"
-#define FILE_NAME  L"C:\\Parts\\Castor\\Model 4.stp.stl"
+//#define FILE_NAME  L"C:\\Parts\\Castor\\Model 4.stp.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less 6 another.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\less6.stl"
 //#define FILE_NAME  L"C:\\Parts\\Castor\\more6 another.stl"
@@ -251,6 +252,10 @@ int main(int argc, char* argv[])
               PFSolidCreateCylinder(env, PTPoint{ 0.0, 0.0, 0.0 }, PTPoint{ 0.0, 0.0, 100.0 }, 20.0, 5, NULL, &model);
         //        PFSolidCreateFromBox(env, PTBounds{ -20.0, 20.0, -20.0, 20.0, -20.0, 20.0, }, NULL, &model);
      }
+    PTSolid2UltraMesh(model, ultraMesh);
+    ultraMesh.AlignToMinZ();
+    PTSolid rotatedSolid = UltraMesh2PTSolid(ultraMesh, env);
+    WriteSTL(rotatedSolid, L"c:\\temp\\rotated.stl");
     PTTransformMatrix mat;
     PMInitTransformMatrix(mat);
     //        PFTransformMatrixScale(mat, 1, 0.1, 0.5);
