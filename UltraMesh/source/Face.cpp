@@ -1,5 +1,5 @@
-#include "Face.h"
-#include "Edge.h"
+#include "../../UltraMesh/include/Face.h"
+#include "../../UltraMesh/include/Edge.h"
 
 UltraFace::UltraFace(int idx1, int idx2, int idx3)
 {

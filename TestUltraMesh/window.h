@@ -1,11 +1,11 @@
 /*
- *   $Id: //pg/RELEASE/30/P03/external_demos/examples/include/window.h#1 $
+ *   $Id: //pg/RELEASE/32/FCS/external_demos/examples/include/window.h#1 $
  *
- *   $File: //pg/RELEASE/30/P03/external_demos/examples/include/window.h $
+ *   $File: //pg/RELEASE/32/FCS/external_demos/examples/include/window.h $
  *   $Revision: #1 $
- *   $Change: 157229 $
- *   $Author: NICKW $
- *   $DateTime: 2021/02/03 15:24:31 $
+ *   $Change: 180221 $
+ *   $Author: nigel $
+ *   $DateTime: 2022/10/06 14:34:45 $
  *
  *   Description:
  *
@@ -13,7 +13,7 @@
  *
  *   Copyright Notice:
  *
- *      $Copyright: MachineWorks Ltd. 1990-2019, 2020$
+ *      $Copyright: MachineWorks Ltd. 1990-2021, 2022$
  *      All rights reserved.
  *
  *      This software and its associated documentation contains proprietary,
@@ -236,8 +236,7 @@ HWND PgWindowCreate(char * caption,
    return window;
 }
 
-#endif /* PG_OS == PG_OS_NT */
-#if PG_OS == PG_OS_UNIX
+#elif PG_OS == PG_OS_UNIX
 
 #define EVENT_MASK                              \
    ExposureMask |                               \
@@ -496,8 +495,43 @@ int PgWindowMouse(char * text, PTNat32 *x, PTNat32 *y)
    return 0;   
 }
 
+#elif PG_OS == PG_OS_MAC
 
-#endif /* PG_OS == PG_OS_UNIX */
+int PgWindowRegister(void *window, PTDrawable drawable, PTViewport vp)
+{
+   return 0;
+}
+
+int PgWindowMouse(char * text, PTNat32 *x, PTNat32 *y)
+{
+   return -1;
+}
+
+void * PgWindowGetDisplay (char * display)
+{
+   return NULL;
+}
+
+/* Destroy the Polygonica window */
+PTStatus PgWindowDestroy(void * window)
+{
+   if (! window)
+      return PV_STATUS_BAD_CALL;
+
+   return PV_STATUS_BAD_CALL;
+}
+
+/* Create a Polygonica window */
+void *PgWindowCreate(char * caption, 
+                     PTNat32 x, PTNat32 y,
+                     PTNat32 width, PTNat32 height )
+{
+   void *window = NULL;
+
+   return window;
+}
+
+#endif /* PG_OS */
 
 int PgWindowText(char *text)
 {

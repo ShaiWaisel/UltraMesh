@@ -1,5 +1,5 @@
-#include "UltraVoxel.h"
-#include "Vertex.h"
+#include "../../UltraMesh/include/UltraVoxel.h"
+#include "../../UltraMesh/include/Vertex.h"
 
 #define MAX_RECURSION_DEPTH 700
 
@@ -95,7 +95,7 @@ void VoxelVolume::DrawLine(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2,
         for (int iX = p1[0]; iX * iDir <= p2[0] * iDir; iX+= iDir)
         {
             double factor = (p1[0] == p2[0]) ? 1.0 : (double)(iX - p1[0]) / (p2[0] - p1[0]);
-            ip << iX, p1[1] + factor * (p2[1] - p1[1]), p1[2] + factor * (p2[2] - p1[2]);
+            ip << (int)(iX, p1[1] + factor * (p2[1] - p1[1]), p1[2] + factor * (p2[2] - p1[2]));
             m_voxels[ip[0]][ip[1]][ip[2]].layer = cost;
             m_voxels[ip[0]][ip[1]][ip[2]].ancestor = faceIdx;
             m_border.insert({ ip[0], ip[1], ip[2] });
@@ -108,7 +108,7 @@ void VoxelVolume::DrawLine(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2,
             for (int iY = p1[1]; iY * iDir <= p2[1] * iDir; iY+= iDir)
             {
                 double factor = (p1[1] == p2[1]) ? 1.0 : (double)(iY - p1[1]) / (p2[1] - p1[1]);
-                ip << p1[0] + factor * (p2[0] - p1[0]), iY, p1[2] + factor * (p2[2] - p1[2]);
+                ip << (int)(p1[0] + factor * (p2[0] - p1[0]), iY, p1[2] + factor * (p2[2] - p1[2]));
                 m_voxels[ip[0]][ip[1]][ip[2]].layer = cost;
                 m_voxels[ip[0]][ip[1]][ip[2]].ancestor = faceIdx;
                 m_border.insert({ ip[0], ip[1], ip[2] });
@@ -121,7 +121,7 @@ void VoxelVolume::DrawLine(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2,
             for (int iZ = p1[2]; iZ * iDir <= p2[2] * iDir; iZ += iDir)
             {
                 double factor = (p1[2] == p2[2]) ? 1.0 : (double)(iZ - p1[2]) / (p2[2] - p1[2]);
-                ip << p1[0] + factor * (p2[0] - p1[0]), p1[1] + factor * (p2[1] - p1[1]), iZ;
+                ip << (int)(p1[0] + factor * (p2[0] - p1[0]), p1[1] + factor * (p2[1] - p1[1]), iZ);
                 m_voxels[ip[0]][ip[1]][ip[2]].layer = cost;
                 m_voxels[ip[0]][ip[1]][ip[2]].ancestor = faceIdx;
                 m_border.insert({ ip[0], ip[1], ip[2] });
@@ -208,16 +208,16 @@ void VoxelVolume::DrawTrig(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2,
          {
              double factorAB = (pB[0] == pA[0]) ? 1.0 : (double)(iX - pA[0]) / (pB[0] - pA[0]);
              double factorACB = 0.0;
-            pAB << iX, pA[1] + factorAB * (pB[1] - pA[1]), pA[2] + factorAB * (pB[2] - pA[2]);
+            pAB << (int)(iX, pA[1] + factorAB * (pB[1] - pA[1]), pA[2] + factorAB * (pB[2] - pA[2]));
             if (iX*iDir <= pC[0]*iDir)
             {
                 factorACB = (pC[0] == pA[0]) ? 1.0 : (double)(iX - pA[0]) / (pC[0] - pA[0]);
-                pACB << iX, pA[1] + factorACB * (pC[1] - pA[1]), pA[2] + factorACB * (pC[2] - pA[2]);
+                pACB << (int)(iX, pA[1] + factorACB * (pC[1] - pA[1]), pA[2] + factorACB * (pC[2] - pA[2]));
             }
             else
             {
                 factorACB = (pB[0] == pC[0]) ? 1.0 : (double)(iX - pC[0]) / (pB[0] - pC[0]);
-                pACB << iX, pC[1] + factorACB * (pB[1] - pC[1]), pC[2] + factorACB * (pB[2] - pC[2]);
+                pACB << (int)(iX, pC[1] + factorACB * (pB[1] - pC[1]), pC[2] + factorACB * (pB[2] - pC[2]));
             }
             DrawLine(pAB, pACB, cost, faceIdx);
         }
@@ -231,16 +231,16 @@ void VoxelVolume::DrawTrig(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2,
         {
             double factorAB = (pB[1] == pA[1]) ? 1.0 : (double)(iY - pA[1]) / (pB[1] - pA[1]);
             double factorACB = 0.0;
-            pAB << pA[0] + factorAB * (pB[0] - pA[0]), iY, pA[2] + factorAB * (pB[2] - pA[2]);
+            pAB << (int)(pA[0] + factorAB * (pB[0] - pA[0]), iY, pA[2] + factorAB * (pB[2] - pA[2]));
             if (iY*iDir <= pC[1]*iDir)
             {
                 factorACB = (pC[1] == pA[1]) ? 1.0 : (double)(iY - pA[1]) / (pC[1] - pA[1]);
-                pACB << pA[0] + factorACB * (pC[0] - pA[0]), iY, pA[2] + factorACB * (pC[2] - pA[2]);
+                pACB << (int)(pA[0] + factorACB * (pC[0] - pA[0]), iY, pA[2] + factorACB * (pC[2] - pA[2]));
             }
             else
             {
                 factorACB = (pB[1] == pC[1]) ? 1.0 : (double)(iY - pC[1]) / (pB[1] - pC[1]);
-                pACB << pC[0] + factorACB * (pB[0] - pC[0]), iY, pC[2] + factorACB * (pB[2] - pC[2]);
+                pACB << (int)(pC[0] + factorACB * (pB[0] - pC[0]), iY, pC[2] + factorACB * (pB[2] - pC[2]));
             }
             DrawLine(pAB, pACB, cost, faceIdx);
         }
@@ -254,16 +254,16 @@ void VoxelVolume::DrawTrig(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2,
         {
             double factorAB = (pB[2] == pA[2]) ? 1.0 : (double)(iZ - pA[2]) / (pB[2] - pA[2]);
             double factorACB = 0.0;
-            pAB << pA[0] + factorAB * (pB[0] - pA[0]), pA[1] + factorAB * (pB[1] - pA[1]), iZ;
+            pAB << (int)(pA[0] + factorAB * (pB[0] - pA[0]), pA[1] + factorAB * (pB[1] - pA[1]), iZ);
             if (iZ*iDir <= pC[2] * iDir)
             {
                 factorACB = (pC[2] == pA[2]) ? 1.0 : (double)(iZ - pA[2]) / (pC[2] - pA[2]);
-                pACB << pA[0] + factorACB * (pC[0] - pA[0]), pA[1] + factorACB * (pC[1] - pA[1]), iZ;
+                pACB << (int)(pA[0] + factorACB * (pC[0] - pA[0]), pA[1] + factorACB * (pC[1] - pA[1]), iZ);
             }
             else
             {
                 factorACB = (pB[2] == pC[2]) ? 1.0 : (double)(iZ - pC[2]) / (pB[2] - pC[2]);
-                pACB << pC[0] + factorACB * (pB[0] - pC[0]), pC[1] + factorACB * (pB[1] - pC[1]), iZ;
+                pACB << (int)(pC[0] + factorACB * (pB[0] - pC[0]), pC[1] + factorACB * (pB[1] - pC[1]), iZ);
             }
             DrawLine(pAB, pACB, cost, faceIdx);
         }
@@ -989,17 +989,17 @@ bool VoxelVolume::HasNeighbor(const int& i, const int& j, const int& k, const in
 
 bool VoxelVolume::HasNeighbor(const int& i, const int& j, const int& k, const char& flags, bool diagonal)
 {
-    if (m_voxels[i - 1][j][k].flag & flags)
+    if (m_voxels[i - 1][j][k].flag == flags)
         return true;
-    if (m_voxels[i][j - 1][k].flag & flags)
+    if (m_voxels[i][j - 1][k].flag == flags)
         return true;
-    if (m_voxels[i][j][k - 1].flag & flags)
+    if (m_voxels[i][j][k - 1].flag == flags)
         return true;
-    if (m_voxels[i + 1][j][k].flag & flags)
+    if (m_voxels[i + 1][j][k].flag == flags)
         return true;
-    if (m_voxels[i][j + 1][k].flag & flags)
+    if (m_voxels[i][j + 1][k].flag == flags)
         return true;
-    if (m_voxels[i][j][k + 1].flag & flags)
+    if (m_voxels[i][j][k + 1].flag == flags)
         return true;
 
     if (diagonal)
@@ -1062,6 +1062,18 @@ bool VoxelVolume::FindLayer(const int& fromI, const int& fromJ, const int& fromK
 
 void VoxelVolume::AdjustNeighboringFlags()
 {
+    for (int i = 1; i <= m_size[0]; i++)
+        for (int j = 1; j <= m_size[1]; j++)
+            for (int k = 1; k <= m_size[2]; k++)
+            {
+                if ((m_voxels[i][j][k].layer == 1) && (m_voxels[i][j][k].flag == VOXEL_FLAG_THICK))
+                {
+                    if (!HasNeighbor(i, j, k, VOXEL_FLAG_THICK, false))
+                        m_voxels[i][j][k].flag = VOXEL_FLAG_THIN;
+
+                }
+            }
+
     char flags = VOXEL_FLAG_THICK | VOXEL_FLAG_TRANSIENT;
     for (int i = 1; i <= m_size[0]; i++)
         for (int j = 1; j <= m_size[1]; j++)
@@ -1069,7 +1081,7 @@ void VoxelVolume::AdjustNeighboringFlags()
             {
                 if (m_voxels[i][j][k].flag == VOXEL_FLAG_THIN)
                 {
-                      if (HasNeighbor(i,j,k,flags, true))
+                      if ((m_voxels[i][j][k].layer == 1) && (const char)(HasNeighbor(i,j,k,flags, true))  )
                           m_voxels[i][j][k].flag = VOXEL_FLAG_TRANSIENT + 100;
                 }
             }
@@ -1082,3 +1094,29 @@ void VoxelVolume::AdjustNeighboringFlags()
 
             }
 }
+
+void VoxelVolume::Dilate(const int layer, const char flag, const int layers)
+{
+    for (int i = 0; i < layers; i++)
+    {
+        for (int i = 1; i <= m_size[0]; i++)
+            for (int j = 1; j <= m_size[1]; j++)
+                for (int k = 1; k <= m_size[2]; k++)
+                {
+                    if ((m_voxels[i][j][k].layer == 0) && (HasNeighbor(i, j, k, (const char)flag, false)))
+                    {
+                        m_voxels[i][j][k].flag = flag + 100;
+                        m_voxels[i][j][k].layer = layer;
+                    }
+                }
+        for (int i = 1; i <= m_size[0]; i++)
+            for (int j = 1; j <= m_size[1]; j++)
+                for (int k = 1; k <= m_size[2]; k++)
+                {
+                    if (m_voxels[i][j][k].flag > 100)
+                        m_voxels[i][j][k].flag -= 100;
+
+                }
+    }
+}
+

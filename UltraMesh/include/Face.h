@@ -2,6 +2,7 @@
 
 #include <set>
 #include <math.h>
+#include <numbers>
 #include "UltraVoxel.h"
 
 #define FLAG_RESET 0
@@ -12,7 +13,7 @@
 
 class UltraVertex;
 
-class ULTRAMESH_API UltraFace 
+class UltraFace 
 {
 public:
 	UltraFace(int idx1, int idx2, int idx3);

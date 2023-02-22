@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Face.h"
-#include "UltraMeshExportImport.h"
+//#include "UltraMeshExportImport.h"
 
 
 class UltraEdge;
 
-class ULTRAMESH_API UltraVertex
+class UltraVertex
 {
 public:
 	UltraVertex(Eigen::Vector3d position);

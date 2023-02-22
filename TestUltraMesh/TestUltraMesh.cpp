@@ -4,8 +4,8 @@
 #include "pch.h"
 #include <iostream>
 #include <chrono>
-#include "../UltraMesh.h"
-#include "../window.h"
+#include "../UltraMesh/Include/UltraMesh.h"
+#include "../TestUltraMesh/window.h"
 #include "pg/pgrender.h"
 #include "C:/Eigen3.3.7/Eigen/Dense"
 
@@ -258,10 +258,9 @@ int main(int argc, char* argv[])
     {
         PTSolidRemeshOpts initSolidRemeshOpts;
         PMInitSolidRemeshOpts(&initSolidRemeshOpts);
-        initSolidRemeshOpts.keep_sharp_features = TRUE;
-        initSolidRemeshOpts.remesh_limits = PV_REMESH_LIMIT_ERROR;
-        initSolidRemeshOpts.keep_boundaries = TRUE;
         initSolidRemeshOpts.curvature_sensitive_remeshing = TRUE;
+        initSolidRemeshOpts.remesh_limits = PV_REMESH_LIMIT_ERROR;
+        initSolidRemeshOpts.multithread = TRUE;
         initSolidRemeshOpts.error = 0.1;
         status += PFSolidRemesh(model, &initSolidRemeshOpts);
         WriteSTL(model, L"c:\\temp\\!meshed.stl");

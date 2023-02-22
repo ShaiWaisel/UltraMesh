@@ -1,5 +1,5 @@
-#include "Vertex.h"
-#include "Edge.h"
+#include "../../UltraMesh/include/Vertex.h"
+#include "../../UltraMesh/include/Edge.h"
 
 
 

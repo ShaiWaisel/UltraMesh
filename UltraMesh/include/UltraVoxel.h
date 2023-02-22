@@ -1,12 +1,15 @@
 #pragma once
 #include "C:/Eigen3.3.7/Eigen/Dense"
 
-#include "UltraMeshExportImport.h"
+//#include "UltraMeshExportImport.h"
 #include <set>
 #include <array>
 
 typedef double Bounds[6];
 
+#define EPSILON3 1.0E-3
+#define EPSILON4 1.0E-4
+#define EPSILON5 1.0E-5
 #define EPSILON6 1.0E-6
 #define VOXEL_FLAG_EMPTY 0
 #define VOXEL_FLAG_THIN 1
@@ -19,7 +22,7 @@ typedef double Bounds[6];
 class UltraFace;
 class UltraVertex;
 
-struct Voxel
+struct UltraVoxel
 {
     long int ancestor = 0;
     int layer = 0;
@@ -31,7 +34,7 @@ struct Voxel
 
 /* ============================================================================================== */
 
-class ULTRAMESH_API VoxelVolume
+class  VoxelVolume
 {
 public:
     VoxelVolume(const Bounds& bounds, const double resolution);
@@ -45,6 +48,7 @@ public:
     void ClassifyByDepth(const double fromDepth, const double toDepth, char flag);
     void RenderByFlag(char flag, std::vector< Eigen::Vector3i>& ijks);
     void AdjustNeighboringFlags();
+    void Dilate(const int layer, const char flag, const int layers);
     std::set<std::array<int, 3>> Border() { return m_border; }
     std::set<std::array<int, 3>> Outside() { return m_outside; }
 
@@ -60,8 +64,8 @@ private:
     void DrawTrig(const Eigen::Vector3i& p1, const Eigen::Vector3i& p2, const Eigen::Vector3i& p3, const int cost,
         const int faceIdx);
     void SetDepth(Eigen::Vector3i ijk, bool diagonal);
-    void FloodFill(const const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
-    void FloodFillRays(const const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
+    void FloodFill(const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
+    void FloodFillRays(const Eigen::Vector3i seed, const int& fromValue, const int& toValue, int depth);
     bool FindSeed(const int seedValue, const int neighborValue, Eigen::Vector3i& ijk);
     bool HasNeighbor(const int& i, const int& j, const int& k, const int& layer, bool diagonal);
     bool HasNeighbor(const int& i, const int& j, const int& k, const char& flags, bool diagonal);
@@ -70,7 +74,7 @@ private:
     Bounds m_bounds = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     Eigen::Vector3i m_size = { 0, 0, 0 };
     Eigen::Vector3d m_margins = { 0.0, 0.0, 0.0 };
-    std::vector<std::vector<std::vector<Voxel>>> m_voxels;
+    std::vector<std::vector<std::vector<UltraVoxel>>> m_voxels;
     std::set<std::array<int,3>> m_border;
     std::vector<Eigen::Vector3d> m_faceNormals;
     std::set<std::array<int, 3>> m_outside;

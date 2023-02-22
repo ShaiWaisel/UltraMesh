@@ -1,7 +1,6 @@
-#include "UltraMesh.h"
+#include "../../UltraMesh/include/UltraMesh.h"
 #include <iostream>
 #include <fstream>
-
 
 
 typedef struct VVF
@@ -20,6 +19,59 @@ public:
 	int m_f;
 	int m_i;
 }VVF;
+
+bool Zpolyline::AddSegment(const double x1, const double y1, const double x2, const double y2)
+{
+    if (m_segments.size() == 0)
+    {
+        m_segments.push_back(std::make_pair(std::make_pair(x1, y1), std::make_pair(x2, y2)));
+        return true;
+    }
+    if (m_closed)
+        return false;
+    Eigen::Vector2d p1 = { x1, y1 };
+    Eigen::Vector2d p2 = { x2, y2 };
+    Eigen::Vector2d head = {m_segments.begin()->first.first, m_segments.begin()->first.second };
+    Eigen::Vector2d tail = { m_segments.back().second.first, m_segments.back().second.second };
+    if ((p1 - tail).squaredNorm() < EPSILON4)
+    {
+        m_segments.push_back(std::make_pair(std::make_pair(x1, y1), std::make_pair(x2, y2)));
+        m_closed = ((Eigen::Vector2d{ x2, y2 } - head).squaredNorm() < EPSILON6);
+        return true;
+    }
+    if ((Eigen::Vector2d{ x2, y2 } - head).squaredNorm() < EPSILON4)
+    {
+        m_segments.push_front(std::make_pair(std::make_pair(x1, y1), std::make_pair(x2, y2)));
+        m_closed = ((Eigen::Vector2d{ x1, y1 } - tail).squaredNorm() < EPSILON6);
+        return true;
+    }
+    return false;
+}
+
+void Zpolyline::StartPoint(int idx, Eigen::Vector3d& p)
+{
+    std::list<std::pair<std::pair<double, double>, std::pair<double, double>>>::iterator it = std::next(m_segments.begin(), idx);
+    p[0] = it->first.first;
+    p[1] = it->first.second;
+    p[2] = m_Z;
+};
+
+void Zpolyline::EndPoint(int idx, Eigen::Vector3d& p)
+{
+    std::list<std::pair<std::pair<double, double>, std::pair<double, double>>>::iterator it = std::next(m_segments.begin(), idx);
+    p[0] = it->second.first;
+    p[1] = it->second.second;
+    p[2] = m_Z;
+};
+
+double Zpolyline::Length()
+{
+    double length = 0.0;
+    for (auto& segment : m_segments)
+        length += sqrt((segment.second.first - segment.first.first) * (segment.second.first - segment.first.first) +
+        (segment.second.second - segment.first.second) * (segment.second.second - segment.first.second));
+    return length;
+}
 
 UltraMesh::UltraMesh()
 {
@@ -59,7 +111,7 @@ void UltraMesh::MapEdges()
 {
 	bool verbose = false;
 	m_edges.clear();
-	for (size_t idx = 0; idx < m_faces.size(); idx++)
+	for (int idx = 0; idx < (int)m_faces.size(); idx++)
 	{
 		m_edges.push_back(UltraEdge(m_faces[idx].m_vertices[0], m_faces[idx].m_vertices[1], (int)idx));
 		m_edges.push_back(UltraEdge(m_faces[idx].m_vertices[1], m_faces[idx].m_vertices[2], (int)idx));
@@ -696,7 +748,7 @@ void UltraMesh::OffsetBySkeleton(double maxOffset)
             vertex->m_shadowPosition = position + direction * vertex->m_normal * maxDist;// *sqrt(1 + vertex->m_curvature);
             if (isnan(vertex->m_shadowPosition[0]))
             {
-                printf("NaN detected vertex %d \n", vertexIdx);
+                printf("NaN detected vertex %zd \n", vertexIdx);
             }
         }
         printf("\rProcessing...%3.1f%%\n", 100.0);
@@ -841,6 +893,319 @@ void UltraMesh::CalcThickness(const UltraMesh& otherMesh)
         m_vertices[idx].m_thickness = (m_vertices[idx].m_position - otherMesh.m_vertices[idx].m_position).norm();
     }
 }
+
+bool UltraMesh::CalcMinimas(std::vector<Eigen::Vector3d>& minimas, std::vector<Eigen::Vector3d>& normals)
+{
+    for (auto& vertex : m_vertices)
+    {
+        if (vertex.m_normal[2] < -0.2)
+        {
+            bool lowest = true;
+            for (auto& vIdx : vertex.Edges())
+            {
+                Eigen::Vector3d otherP = m_vertices[m_edges[vIdx].m_idxV2].m_position;
+                if (otherP[2] < vertex.m_position[2] + EPSILON6)
+                {
+                    lowest = false;
+                    break;
+                }
+            }
+            if (lowest)
+            {
+                minimas.push_back(vertex.m_position);
+                normals.push_back(vertex.m_normal);
+            }
+        }
+    }
+
+    return true;
+}
+
+bool UltraMesh::CalcSkeleton( double minDistBetweenSkeletonPoints, std::vector<Eigen::Vector3d>& skeleton, std::vector<Eigen::Vector3d>& normals)
+{
+    for (auto& edge : m_edges)
+    {
+        if (edge.Status() == FLAG_RESET)
+        {
+
+            Eigen::Vector3d normal1 = m_faces[edge.m_idxFace].Normal();
+            if (normal1[2] < 0.0)
+            {
+                Eigen::Vector3d normal2 = m_faces[m_edges[edge.Twin()].m_idxFace].Normal();
+                if (normal2[2] < 0.0)
+                {
+                    Eigen::Vector3d p1 = m_vertices[edge.m_idxV1].m_position;
+                    Eigen::Vector3d p2 = m_vertices[edge.m_idxV2].m_position;
+                    Eigen::Vector3d n1 = m_vertices[edge.m_idxV1].m_normal;
+                    Eigen::Vector3d n2 = m_vertices[edge.m_idxV2].m_normal;
+                    Eigen::Vector3d p3 = { p2[0], p2[1], p2[2] - 1.0 };
+                    Eigen::Vector3d v1 = p2 - p1;
+                    Eigen::Vector3d v2 = p3 - p1;
+                    Eigen::Vector3d n = v1.cross(v2);
+                    double nd1 = normal1.dot(n);
+                    double nd2 = normal2.dot(n);
+                    if (nd1*nd2 < 0.0)
+                    {
+                        skeleton.push_back(m_vertices[edge.m_idxV1].m_position);
+                        skeleton.push_back(m_vertices[edge.m_idxV2].m_position);
+                        normals.push_back(m_vertices[edge.m_idxV1].m_normal);
+                        normals.push_back(m_vertices[edge.m_idxV2].m_normal);
+                        double len = sqrt((p1[0] - p2[0])*(p1[0] - p2[0]) + (p1[1] - p2[1])*(p1[1] - p2[1]));
+                        if (len > minDistBetweenSkeletonPoints)
+                        {
+                            int middles = (int)round(len / minDistBetweenSkeletonPoints) + 1;
+                            double step = len / middles;
+                            for (int i = 1; i < middles; i++)
+                            {
+                                double t = (double)i / middles;
+                                Eigen::Vector3d p = p1 + (p2 - p1) * t;
+                                Eigen::Vector3d n = n1 + (n2 - n1) * t;
+                                n.normalize();
+                                skeleton.push_back(p);
+                                normals.push_back(n);
+                            }
+                        }
+                        edge.SetStatus(FLAG_MARK);
+                        m_edges[edge.Twin()].SetStatus(FLAG_MARK);
+                    }
+                }
+            }
+        }
+    }
+    for (auto& edge : m_edges)
+        edge.SetStatus(FLAG_RESET);
+    return true;
+}
+
+void UltraMesh::GetNearestNeighbours(Eigen::Vector3d seed, double radius, std::vector<UltraVertex>& neighbours)
+{
+    double sqRad = radius * radius;
+    neighbours.reserve(m_vertices.size());
+    for (auto& vertex : m_vertices)
+    {
+        if ((vertex.m_position - seed).squaredNorm() <= sqRad)
+            neighbours.push_back(vertex);
+    }
+}
+
+
+bool Pinch(Eigen::Vector3d p1, Eigen::Vector3d p2, const double z, double (&segment)[4])
+{
+    if (abs(p1[2] - z) < EPSILON6)
+        p1[2] += EPSILON5;
+    if (abs(p2[2] - z) < EPSILON6)
+        p2[2] += EPSILON5;
+    if (abs(p1[2] - p2[2]) < EPSILON6)
+        return false; // line parallel to the pinching plane
+    if ((abs(p1[2] - z) < EPSILON6) && (abs(p2[2] - z) < EPSILON6))
+        return false; // two points on the pinching plane
+    if ((p1[2] - z) * (p2[2] - z) > 0.0)
+        return false; // two points above or below the pinching plane
+    double factor = (z - p1[2]) / (p2[2] - p1[2]);
+    double p[2];
+    p[0] = p1[0] + factor * (p2[0] - p1[0]);
+    p[1] = p1[1] + factor * (p2[1] - p1[1]);
+    if (p2[2] < p1[2])
+    {                               // pinching downwards
+        segment[0] = p[0];
+        segment[1] = p[1];
+    }
+    else
+    {                              // pinching upwards
+        segment[2] = p[0];
+        segment[3] = p[1];
+    }
+    return ((abs(segment[2] - segment[0]) > EPSILON3) || (abs(segment[3] - segment[1]) > EPSILON3));
+}
+
+void UltraMesh::Transform(Eigen::Affine3d mat)
+{
+    for (auto& vertex : m_vertices)
+    {
+        Eigen::Vector4d point = { vertex.m_position[0], vertex.m_position[1], vertex.m_position[2], 1.0};
+        point = mat * point;
+        for (int i=0; i<3; i++)
+            vertex.m_position[i] = point[i];
+    }
+}
+
+bool UltraMesh::Slice(std::vector<std::pair<double, std::vector<Zpolyline>>>& slices)
+{
+    typedef std::pair<std::pair<double, double>, std::pair<double, double>> Segment;
+    typedef std::vector<Segment> Mikado;
+
+    std::vector<Mikado> soup;
+    std::vector<double> zVals;
+    soup.reserve(slices.size());
+    zVals.reserve(slices.size());
+    for (auto& slice : slices)
+    {
+        Mikado mikado ;
+        soup.push_back(mikado);
+        zVals.push_back(slice.first);
+    }
+    for (auto& face : m_faces)
+    {
+        double faceZmin = std::min(std::min(m_vertices[face.m_vertices[0]].m_position[2], m_vertices[face.m_vertices[1]].m_position[2]), m_vertices[face.m_vertices[2]].m_position[2]);
+        double faceZmax = std::max(std::max(m_vertices[face.m_vertices[0]].m_position[2], m_vertices[face.m_vertices[1]].m_position[2]), m_vertices[face.m_vertices[2]].m_position[2]);
+        int low = (std::lower_bound(zVals.begin(), zVals.end(), faceZmin) - zVals.begin());
+        int high = (std::upper_bound(zVals.begin(), zVals.end(), faceZmax) - zVals.begin());
+        for (int idx = low; idx < high; idx++)
+        {
+            double segment[4] = { 0.0, 0.0, 0.0, 0.0 }; // constant Z
+            int pinches = 
+                (int)Pinch(m_vertices[face.m_vertices[0]].m_position, m_vertices[face.m_vertices[1]].m_position, zVals[idx], segment) +
+                (int)Pinch(m_vertices[face.m_vertices[1]].m_position, m_vertices[face.m_vertices[2]].m_position, zVals[idx], segment) +
+                (int)Pinch(m_vertices[face.m_vertices[2]].m_position, m_vertices[face.m_vertices[0]].m_position, zVals[idx], segment);
+            if (pinches == 2)
+            {
+                Segment newSegment = { {segment[0], segment[1]}, {segment[2], segment[3]} };
+                soup[idx].push_back(newSegment);
+            }
+        }
+    }
+    
+    // loop over all slices
+    for (int layerIdx = 0; layerIdx < (int)zVals.size(); layerIdx++)
+    {
+        // loop over all segments in slice idx
+        Mikado& mikado = soup[layerIdx];
+        bool chained = false;
+        while (mikado.size() > 0)
+        {
+            for (int segmentIdx = 0; segmentIdx < (int)mikado.size(); segmentIdx++)
+            {
+                auto& segment = mikado[segmentIdx];
+                chained = false;
+                for (int polyIdx = 0; polyIdx < slices[layerIdx].second.size(); polyIdx++)
+                {
+                    if (slices[layerIdx].second[polyIdx].AddSegment(segment.first.first, segment.first.second, segment.second.first, segment.second.second))
+                    {
+                        chained = true;
+                        mikado.erase(mikado.begin() + segmentIdx);
+                        break;
+                    }
+                }
+                if (chained)
+                    break;
+            }
+            if ((!chained) && (mikado.size() > 0))
+            {
+                Zpolyline polyLine(zVals[layerIdx]);
+                polyLine.AddSegment(mikado[0].first.first, mikado[0].first.second, mikado[0].second.first, mikado[0].second.second);
+                slices[layerIdx].second.push_back(polyLine);
+                chained = true;
+                mikado.erase(mikado.begin());
+            }
+
+        }
+
+        for (int polyIdx = slices[layerIdx].second.size() - 1; polyIdx > 0; polyIdx--)
+        {
+            auto& polyline = slices[layerIdx].second[polyIdx];
+            if (polyline.Length() < 0.1)
+                slices[layerIdx].second.erase(slices[layerIdx].second.begin() + polyIdx);
+        }
+    }
+
+    return true;
+}
+
+void UltraMesh::AlignToMinZ()
+{
+    UltraMesh testMesh(*this);
+    double accurateThetaX = 0.0, accurateThetaY = 0.0;
+    testMesh.CalcBounds();
+
+    Eigen::Affine3d transMat = Eigen::Affine3d::Identity();
+    double dx = (testMesh.m_bounds[0] + testMesh.m_bounds[1]) * 0.5;
+    double dy = (testMesh.m_bounds[2] + testMesh.m_bounds[3]) * 0.5;
+    double dz = (testMesh.m_bounds[4] + testMesh.m_bounds[5]) * 0.5;
+    transMat.translation() = Eigen::Vector3d(-dx, -dy, -dz);
+    testMesh.Transform(transMat);
+    double angFrom = -M_PI_2;
+    double angTo = M_PI_2;
+    double angStep = (angTo - angFrom) / 10;
+
+    double theta = angFrom;
+    while (angStep > 1.0E-6)
+    {
+        std::vector<double> heights;
+        theta = angFrom - angStep;
+        while (theta < angTo)
+        {
+            theta = theta + angStep;
+            Eigen::Affine3d aff = Eigen::Affine3d::Identity();
+            aff.rotate(Eigen::AngleAxisd(theta, Eigen::Vector3d(1, 0, 0)));
+            testMesh.Transform(aff);
+            testMesh.CalcBounds();
+            heights.push_back(testMesh.m_bounds[5] - testMesh.m_bounds[4]);
+            aff = aff.inverse();
+            testMesh.Transform(aff);
+        }
+        int minIdx = std::min_element(heights.begin(), heights.end()) - heights.begin() + 1;
+        if (minIdx < heights.size())
+            angTo = angFrom + (minIdx + 1) * angStep;
+        else
+            angTo += angStep;
+        if (minIdx > 1)
+            angFrom += (minIdx - 1) * angStep;
+        else
+            angFrom -= angStep;
+        angStep = (angTo - angFrom) / 10.0;
+        printf("X: idx %d ang from %1.8f to %1.8f step %1.8f\n", minIdx, angFrom, angTo, angStep);
+    }
+
+    accurateThetaX = (angFrom + angTo) * 0.5;
+    Eigen::Affine3d aff = Eigen::Affine3d::Identity();
+    aff.rotate(Eigen::AngleAxisd(accurateThetaX, Eigen::Vector3d(1, 0, 0)));
+    testMesh.Transform(aff);
+    Transform(aff);
+    angFrom = -M_PI_2;
+    angTo = M_PI_2;
+    angStep = (angTo - angFrom) / 10;
+
+    theta = angFrom;
+    while (angStep > 1.0E-6)
+    {
+        std::vector<double> heights;
+        theta = angFrom - angStep;
+        while (theta < angTo)
+        {
+            theta = theta + angStep;
+            Eigen::Affine3d aff = Eigen::Affine3d::Identity();
+            aff.rotate(Eigen::AngleAxisd(theta, Eigen::Vector3d(0, 1, 0)));
+            testMesh.Transform(aff);
+            testMesh.CalcBounds();
+            heights.push_back(testMesh.m_bounds[5] - testMesh.m_bounds[4]);
+            aff = aff.inverse();
+            testMesh.Transform(aff);
+        }
+        int minIdx = std::min_element(heights.begin(), heights.end()) - heights.begin() + 1;
+        if (minIdx < heights.size())
+            angTo = angFrom + (minIdx + 1) * angStep;
+        else
+            angTo += angStep;
+        if (minIdx > 1)
+            angFrom += (minIdx - 1) * angStep;
+        else
+            angFrom -= angStep;
+        angStep = (angTo - angFrom) / 10.0;
+        printf("Y: idx %d ang from %1.8f to %1.8f step %1.8f\n", minIdx, angFrom, angTo, angStep);
+    }
+
+    accurateThetaY = (angFrom + angTo) * 0.5;
+    printf("Final rotation angle: X %f Y %f\n", accurateThetaX *180.0 / M_PI, accurateThetaY *180.0 / M_PI);
+    aff = Eigen::Affine3d::Identity();
+    //aff.rotate(Eigen::AngleAxisd(accurateThetaX, Eigen::Vector3d(1, 0, 0)));
+    aff.rotate(Eigen::AngleAxisd(accurateThetaY, Eigen::Vector3d(0, 1, 0)));
+    //aff.translate(Eigen::Vector3d(dx, dy, dz));
+    Transform(aff);
+
+}
+
+
+
 
 
 

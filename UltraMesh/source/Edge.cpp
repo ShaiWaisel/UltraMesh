@@ -1,4 +1,4 @@
-#include "Edge.h"
+#include "../../UltraMesh/include/Edge.h"
 
 UltraEdge::UltraEdge(int idxV1, int idxV2, int idxFace) 
 { 
