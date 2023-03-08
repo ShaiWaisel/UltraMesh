@@ -1048,8 +1048,8 @@ bool UltraMesh::Slice(std::vector<std::pair<double, std::vector<Zpolyline>>>& sl
     {
         double faceZmin = std::min(std::min(m_vertices[face.m_vertices[0]].m_position[2], m_vertices[face.m_vertices[1]].m_position[2]), m_vertices[face.m_vertices[2]].m_position[2]);
         double faceZmax = std::max(std::max(m_vertices[face.m_vertices[0]].m_position[2], m_vertices[face.m_vertices[1]].m_position[2]), m_vertices[face.m_vertices[2]].m_position[2]);
-        int low = (std::lower_bound(zVals.begin(), zVals.end(), faceZmin) - zVals.begin());
-        int high = (std::upper_bound(zVals.begin(), zVals.end(), faceZmax) - zVals.begin());
+        int low = (int)(std::lower_bound(zVals.begin(), zVals.end(), faceZmin) - zVals.begin());
+        int high = (int)(std::upper_bound(zVals.begin(), zVals.end(), faceZmax) - zVals.begin());
         for (int idx = low; idx < high; idx++)
         {
             double segment[4] = { 0.0, 0.0, 0.0, 0.0 }; // constant Z
@@ -1100,7 +1100,7 @@ bool UltraMesh::Slice(std::vector<std::pair<double, std::vector<Zpolyline>>>& sl
 
         }
 
-        for (int polyIdx = slices[layerIdx].second.size() - 1; polyIdx > 0; polyIdx--)
+        for (int polyIdx = (int)slices[layerIdx].second.size() - 1; polyIdx > 0; polyIdx--)
         {
             auto& polyline = slices[layerIdx].second[polyIdx];
             if (polyline.Length() < 0.1)
@@ -1143,7 +1143,7 @@ void UltraMesh::AlignToMinZ()
             aff = aff.inverse();
             testMesh.Transform(aff);
         }
-        int minIdx = std::min_element(heights.begin(), heights.end()) - heights.begin() + 1;
+        int minIdx = (int)(std::min_element(heights.begin(), heights.end()) - heights.begin() + 1);
         if (minIdx < heights.size())
             angTo = angFrom + (minIdx + 1) * angStep;
         else
@@ -1181,7 +1181,7 @@ void UltraMesh::AlignToMinZ()
             aff = aff.inverse();
             testMesh.Transform(aff);
         }
-        int minIdx = std::min_element(heights.begin(), heights.end()) - heights.begin() + 1;
+        int minIdx = (int)(std::min_element(heights.begin(), heights.end()) - heights.begin() + 1);
         if (minIdx < heights.size())
             angTo = angFrom + (minIdx + 1) * angStep;
         else
