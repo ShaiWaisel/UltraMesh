@@ -1,6 +1,7 @@
 #include "../../UltraMesh/include/UltraMesh.h"
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 
 typedef struct VVF
@@ -847,7 +848,7 @@ void UltraMesh::CalcColors(const double redYellow, const double yellowGreen)
 void UltraMesh::SaveAsVRML(const std::wstring fileName)
 {
     std::ofstream myfile;
-    myfile.open(fileName);
+    myfile.open(std::filesystem::path(fileName));
     myfile << "#VRML V2.0 utf8\n#'Mesh by Shai Waisel'\nShape\n{\n";
     myfile << "\tgeometry IndexedFaceSet\n\t{\n";
     myfile << "\t\tcoord Coordinate\n\t\t{\n";
