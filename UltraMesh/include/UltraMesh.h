@@ -66,9 +66,6 @@ public:
     bool Slice(std::vector<std::pair<double, std::vector<Zpolyline>>>& slices);
     void AlignToMinZ();
 
-
-
-
 	std::vector<UltraVertex> m_vertices;
 	std::vector<UltraEdge> m_edges;
 	std::vector<UltraFace> m_faces;
