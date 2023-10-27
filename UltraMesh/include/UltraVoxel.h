@@ -1,5 +1,5 @@
 #pragma once
-#include "C:/Eigen3.3.7/Eigen/Dense"
+#include "Eigen/Dense"
 
 //#include "UltraMeshExportImport.h"
 #include <set>
